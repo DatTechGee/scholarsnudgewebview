@@ -7,57 +7,32 @@ html, body, #__next {
 }
 
 body {
-  @apply bg-gray-50 text-slate-800;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  @apply bg-[#f0f2f5] text-surface-800 antialiased;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
 }
 
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
+/* Smooth transitions */
+* { @apply transition-colors duration-150; }
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { @apply bg-surface-300 rounded-full; }
+::-webkit-scrollbar-thumb:hover { @apply bg-surface-400; }
 
-::-webkit-scrollbar-thumb {
-  @apply bg-slate-300 rounded-full;
-}
+/* Page wrapper */
+.page-enter { animation: pageEnter 0.25s ease-out; }
+@keyframes pageEnter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-slate-400;
-}
+/* Card base */
+.card-base { @apply bg-white rounded-xl border border-surface-200/60 shadow-soft; }
 
-/* Animations */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
-}
-
-/* Card hover effect */
-.card-hover {
-  @apply transition-all duration-200;
-}
-
-.card-hover:hover {
-  @apply shadow-md -translate-y-0.5;
-}
-
-/* Pulse animation for skeleton */
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
+/* Stat card */
+.stat-card { @apply card-base p-5 hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200; }
 
 .skeleton {
   background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
 }
+@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }

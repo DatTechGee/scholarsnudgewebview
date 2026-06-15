@@ -25,7 +25,7 @@ export default function StudentAttendance() {
   const [dateTo, setDateTo] = useState('')
 
   const getToken = useCallback(() => {
-    const t = typeof window !== 'undefined' ? window.localStorage.getItem('student_token') || '' : ''
+    const t = typeof window !== 'undefined' ? (window.localStorage.getItem('student_token') || window.localStorage.getItem('admin_token') || '') : ''
     setToken(t)
     return t
   }, [])
@@ -241,7 +241,7 @@ export default function StudentAttendance() {
                     {record.distance_at_checkin != null
                       ? `${Math.round(record.distance_at_checkin)}m`
                       : record.distance != null
-                        ? `${record.distance.toFixed(1)}m`
+                        ? `${Number(record.distance).toFixed(1)}m`
                         : '—'}
                   </Td>
                   <Td className="text-sm">

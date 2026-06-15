@@ -31,7 +31,7 @@ export default function StudentDashboard() {
   const [error, setError] = useState('')
 
   const getToken = useCallback(() => {
-    const t = typeof window !== 'undefined' ? window.localStorage.getItem('student_token') || '' : ''
+    const t = typeof window !== 'undefined' ? (window.localStorage.getItem('student_token') || window.localStorage.getItem('admin_token') || '') : ''
     setToken(t)
     return t
   }, [])

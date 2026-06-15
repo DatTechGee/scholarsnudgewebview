@@ -33,7 +33,7 @@ export default function SessionDetail() {
         getAdminSessionDetail(id, token),
         getAdminSessionAttendances(id, token, { page }),
       ])
-      setSession(s)
+      setSession(s?.session || s)
       const rows = Array.isArray(a?.data) ? a.data : Array.isArray(a) ? a : []
       setAttendances(rows)
       setMeta({
@@ -73,9 +73,9 @@ export default function SessionDetail() {
   }
 
   const breakdown = {
-    present: attendances.filter(a => (a.status === 'present' || a.status === 'verified') && !a.is_late).length,
-    late: attendances.filter(a => (a.status === 'present' || a.status === 'verified') && a.is_late).length,
-    absent: attendances.filter(a => a.status === 'absent' || a.status === 'invalid').length,
+    present: session?.attendance_breakdown?.present ?? attendances.filter(a => (a.status === 'present' || a.status === 'verified') && !a.is_late).length,
+    late: session?.attendance_breakdown?.late ?? attendances.filter(a => (a.status === 'present' || a.status === 'verified') && a.is_late).length,
+    absent: session?.attendance_breakdown?.absent ?? attendances.filter(a => a.status === 'absent' || a.status === 'invalid').length,
   }
 
   if (!id) return null

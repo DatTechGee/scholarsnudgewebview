@@ -41,23 +41,27 @@ export default function Sidebar({ user, onLogout }) {
 
   return (
     <aside className={clsx(
-      'bg-slate-900 text-white flex flex-col h-full transition-all duration-200',
+      'bg-surface-900 text-white flex flex-col h-full transition-all duration-300 ease-in-out shadow-nav',
       collapsed ? 'w-16' : 'w-64'
     )}>
-      <div className={clsx('p-4 border-b border-slate-700 flex items-center', collapsed ? 'justify-center' : 'justify-between')}>
+      <div className={clsx('h-16 flex items-center border-b border-surface-700/50', collapsed ? 'justify-center' : 'justify-between px-4')}>
         {!collapsed && (
-          <Link href={isAdmin ? '/' : role === 'lecturer' ? '/lecturer' : '/student'} className="font-bold text-lg text-white">
-            <span className="text-blue-400">SN</span> {isAdmin ? 'Admin' : role === 'lecturer' ? 'Lecturer' : 'Student'}
+          <Link href={isAdmin ? '/' : role === 'lecturer' ? '/lecturer' : '/student'} className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-primary-500/20">SN</div>
+            <div>
+              <div className="text-sm font-semibold text-white leading-tight">ScholarsNudge</div>
+              <div className="text-[10px] font-medium text-primary-300 uppercase tracking-wider">{isAdmin ? 'Admin' : role === 'lecturer' ? 'Lecturer' : 'Student'}</div>
+            </div>
           </Link>
         )}
-        <button onClick={() => setCollapsed(!collapsed)} className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-400">
+        <button onClick={() => setCollapsed(!collapsed)} className={clsx('p-1.5 rounded-lg hover:bg-surface-700 text-surface-400 hover:text-white transition-colors', collapsed && 'mx-auto')}>
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={collapsed ? 'M13 5l7 7-7 7M5 5l7 7-7 7' : 'M11 19l-7-7 7-7m8 14l-7-7 7-7'} />
           </svg>
         </button>
       </div>
 
-      <nav className="flex-1 p-2 space-y-1 overflow-auto">
+      <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
         {items.map((item) => {
           const active = router.pathname === item.href || router.pathname.startsWith(item.href + '/')
           return (
@@ -65,41 +69,47 @@ export default function Sidebar({ user, onLogout }) {
               key={item.href}
               href={item.href}
               className={clsx(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                active ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-700 hover:text-white',
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150',
+                active ? 'bg-primary-600/20 text-primary-300 shadow-sm' : 'text-surface-300 hover:bg-surface-800 hover:text-white',
                 collapsed && 'justify-center px-2'
               )}
               title={collapsed ? item.label : undefined}
             >
-              <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <svg className={clsx('w-5 h-5 shrink-0', active ? 'text-primary-400' : 'text-surface-400')} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
               </svg>
               {!collapsed && <span>{item.label}</span>}
+              {active && !collapsed && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-400" />}
             </Link>
           )
         })}
       </nav>
 
-      {user ? (
-        <div className={clsx('p-3 border-t border-slate-700', collapsed && 'text-center')}>
-          {!collapsed && (
-            <div className="text-xs text-slate-400 mb-2 capitalize px-1">
-              {user.role} • {user.name}
+      <div className="p-3 border-t border-surface-700/50">
+        {user ? (
+          <div className={clsx(collapsed ? 'flex flex-col items-center gap-2' : 'flex items-center gap-3')}>
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-surface-600 to-surface-700 flex items-center justify-center text-white font-bold text-sm shrink-0 ring-2 ring-surface-600">
+              {user.name?.charAt(0)?.toUpperCase() || 'U'}
             </div>
-          )}
-          <button
-            onClick={onLogout}
-            className={clsx(
-              'flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm text-red-300 hover:bg-slate-700 hover:text-red-200 transition-colors',
-              collapsed && 'justify-center'
+            {!collapsed && (
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-white truncate">{user.name}</div>
+                <div className="text-xs text-surface-400 capitalize truncate">{user.role.replace('_', ' ')}</div>
+              </div>
             )}
-            title="Logout"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-            {!collapsed && 'Logout'}
-          </button>
-        </div>
-      ) : null}
+            <button
+              onClick={onLogout}
+              className={clsx(
+                'p-1.5 rounded-lg text-surface-400 hover:text-red-400 hover:bg-surface-800 transition-colors',
+                collapsed && 'mt-1'
+              )}
+              title="Logout"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+            </button>
+          </div>
+        ) : null}
+      </div>
     </aside>
   )
 }

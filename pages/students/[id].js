@@ -33,12 +33,13 @@ export default function StudentDetail() {
         getStudentAttendance(id, t, { page }),
       ])
       setStudent(userData?.data || userData)
-      const rows = Array.isArray(attendanceData?.data) ? attendanceData.data : Array.isArray(attendanceData) ? attendanceData : []
+      const records = attendanceData?.records || attendanceData
+      const rows = Array.isArray(records?.data) ? records.data : Array.isArray(records) ? records : []
       setAttendance(rows)
       setMeta({
-        current_page: attendanceData?.current_page || 1,
-        last_page: attendanceData?.last_page || 1,
-        total: attendanceData?.total || rows.length,
+        current_page: records?.current_page || 1,
+        last_page: records?.last_page || 1,
+        total: records?.total || rows.length,
       })
     } catch (err) {
       setError(err?.response?.data?.message || 'Failed to load student data.')
@@ -200,7 +201,7 @@ export default function StudentDetail() {
                         <Td className="text-sm">
                           {record.checked_in_at ? new Date(record.checked_in_at).toLocaleString() : '—'}
                         </Td>
-                        <Td className="text-sm">{record.distance != null ? `${record.distance.toFixed(1)}m` : '—'}</Td>
+                        <Td className="text-sm">{record.distance != null ? `${Number(record.distance).toFixed(1)}m` : '—'}</Td>
                         <Td className="text-sm">
                           {record.late != null ? (
                             <Badge variant={record.late ? 'warning' : 'success'}>

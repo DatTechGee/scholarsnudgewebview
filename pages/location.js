@@ -67,7 +67,7 @@ export default function LocationEditor() {
                   </div>
                   <div className="flex flex-wrap gap-2 mt-2">
                     {c.location_name ? <Badge variant="outline">{c.location_name}</Badge> : null}
-                    {c.location_latitude ? <Badge variant="outline">{c.location_latitude?.toFixed(4)}, {c.location_longitude?.toFixed(4)}</Badge> : null}
+                    {c.location_latitude ? <Badge variant="outline">{Number(c.location_latitude).toFixed(4)}, {Number(c.location_longitude).toFixed(4)}</Badge> : null}
                     {c.location_radius_meters ? <Badge variant="outline">{c.location_radius_meters}m radius</Badge> : null}
                     {c.seating_capacity ? <Badge variant="outline">{c.seating_capacity} seats</Badge> : null}
                   </div>

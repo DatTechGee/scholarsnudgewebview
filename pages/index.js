@@ -8,38 +8,33 @@ import { getDashboardSummary, getWeeklyAttendanceStats, getUsers, getAdminSessio
 import { useRouter } from 'next/router'
 import { useAuth } from '../components/AuthContext'
 
-function StatCard({ label, value, sub, icon, color, trend }) {
+function StatCard({ label, value, sub, icon, color }) {
   return (
-    <Card className="p-5 border-l-4 shadow-sm hover:shadow-md transition-shadow" style={{ borderLeftColor: color }}>
+    <div className="stat-card">
       <div className="flex items-center justify-between">
         <div>
-          <div className="text-2xl font-bold text-slate-800">{value ?? '—'}</div>
-          <div className="text-sm text-slate-500 mt-0.5">{label}</div>
-          {sub ? <div className="text-xs text-slate-400 mt-1">{sub}</div> : null}
+          <div className="text-2xl font-bold text-surface-800">{value ?? '—'}</div>
+          <div className="text-sm text-surface-500 mt-0.5">{label}</div>
+          {sub ? <div className="text-xs text-surface-400 mt-1">{sub}</div> : null}
         </div>
-        <div className="w-12 h-12 rounded-xl flex items-center justify-center text-xl" style={{ backgroundColor: color + '20' }}>
+        <div className="w-11 h-11 rounded-xl flex items-center justify-center text-lg shrink-0" style={{ backgroundColor: color + '18' }}>
           <span>{icon}</span>
         </div>
       </div>
-      {trend !== undefined ? (
-        <div className={`mt-2 text-xs font-medium ${trend >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-          {trend >= 0 ? '↑' : '↓'} {Math.abs(trend)}% vs last month
-        </div>
-      ) : null}
-    </Card>
+    </div>
   )
 }
 
 function MiniBar({ data, color }) {
-  if (!data || data.length === 0) return <p className="text-sm text-slate-400 py-8 text-center">No attendance data yet</p>
+  if (!data || data.length === 0) return <p className="text-sm text-surface-400 py-10 text-center">No attendance data yet</p>
   const max = Math.max(...data.map(d => d.value), 1)
   return (
-    <div className="flex items-end gap-1.5 h-32">
+    <div className="flex items-end gap-1.5 h-36">
       {data.map((d, i) => (
-        <div key={i} className="flex-1 flex flex-col items-center gap-1">
-          <div className="text-[10px] text-slate-500 font-medium">{d.value}</div>
+        <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
+          <div className="text-[10px] text-surface-500 font-semibold">{d.value}</div>
           <div className="w-full rounded-t-md transition-all duration-300 hover:opacity-80" style={{ height: `${(d.value / max) * 100}%`, background: color, minHeight: 4 }} title={d.label} />
-          <div className="text-[9px] text-slate-400 truncate w-full text-center font-medium">{d.label}</div>
+          <div className="text-[9px] text-surface-400 truncate w-full text-center font-medium">{d.label}</div>
         </div>
       ))}
     </div>
@@ -68,102 +63,84 @@ export default function Dashboard() {
     const t = getToken()
     if (t) loadData(t)
     else setLoading(false)
-  }, [])
-
-  const loadData = async (t) => {
-    setLoading(true)
-    setError('')
-    try {
-      const [s, w, u, sess, courses] = await Promise.all([
-        getDashboardSummary(t).catch(() => null),
-        getWeeklyAttendanceStats(t).catch(() => null),
-        getUsers(t, { per_page: 6 }).catch(() => null),
-        getAdminSessions(t, { status: 'active', per_page: 10 }).catch(() => null),
-        getAdminCourses(t, { per_page: 5 }).catch(() => null),
-      ])
-      setSummary(s?.data || s || {})
-      setWeekly(Array.isArray(w) ? w : w?.data || [])
-      setRecentUsers(Array.isArray(u?.data) ? u.data : Array.isArray(u) ? u : [])
-      setActiveSessions(Array.isArray(sess?.data) ? sess.data : Array.isArray(sess) ? sess : [])
-      setRecentCourses(Array.isArray(courses?.data) ? courses.data : Array.isArray(courses) ? courses : [])
-    } catch (err) {
-      setError('Failed to load dashboard data.')
-    } finally {
-      setLoading(false)
+    async function loadData(t) {
+      try {
+        const [sumRes, weeklyRes, usersRes, sessRes, coursesRes] = await Promise.all([
+          getDashboardSummary(t).catch(() => null),
+          getWeeklyAttendanceStats(t).catch(() => null),
+          getUsers(t, { per_page: 5 }).catch(() => null),
+          getAdminSessions(t, { status: 'active' }).catch(() => null),
+          getAdminCourses(t, { per_page: 5 }).catch(() => null),
+        ])
+        const s = sumRes?.data || sumRes || {}
+        setSummary(s.totals || s)
+        const w = weeklyRes?.data || weeklyRes || {}
+        const rawSeries = w.series || w.weekly_data || []
+        setWeekly(rawSeries.map(d => ({ value: d.total_attendance ?? d.value ?? 0, label: d.date || d.label || '' })))
+        const uData = usersRes?.data?.data || usersRes?.data || []
+        setRecentUsers(Array.isArray(uData) ? uData.slice(0, 5) : [])
+        const sData = sessRes?.data?.data || sessRes?.data || []
+        setActiveSessions(Array.isArray(sData) ? sData : [])
+        const cData = coursesRes?.data?.data || coursesRes?.data || []
+        setRecentCourses(Array.isArray(cData) ? cData.slice(0, 5) : [])
+      } catch (err) {
+        setError('Failed to load dashboard data.')
+      } finally {
+        setLoading(false)
+      }
     }
-  }
-
-  if (!token || user?.role !== 'admin') {
-    return (
-      <Layout>
-        <div className="flex flex-col items-center justify-center py-20">
-          <div className="w-20 h-20 bg-blue-100 rounded-2xl flex items-center justify-center mb-6">
-            <svg className="w-10 h-10 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
-          </div>
-          <h1 className="text-2xl font-semibold mb-2">Welcome to Scholars Nudge Admin</h1>
-          <p className="text-slate-500 mb-6">Admin dashboard for overview of all students, lecturers, and courses.</p>
-          <Button onClick={() => router.push('/login')}>Sign In as Admin</Button>
-        </div>
-      </Layout>
-    )
-  }
+  }, [getToken])
 
   return (
     <Layout>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Dashboard</h1>
-          <p className="text-slate-500 text-sm">System-wide overview of students, lecturers, and academic activities</p>
-        </div>
-        <div className="flex gap-2">
-          <Badge variant="info" className="text-xs">{summary?.active_sessions || activeSessions.length || 0} active sessions</Badge>
-          <Button variant="ghost" onClick={() => loadData(token)} disabled={loading}>
-            {loading ? 'Loading...' : 'Refresh'}
-          </Button>
-        </div>
-      </div>
-
-      {error ? <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700 text-sm">{error}</div> : null}
-
       {loading ? (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-pulse">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {[1,2,3,4].map(i => <Card key={i} className="h-28 animate-pulse bg-slate-100" />)}
+            {[1,2,3,4].map(i => <div key={i} className="card-base h-28" />)}
           </div>
-          <Card className="h-48 animate-pulse bg-slate-100" />
+          <div className="card-base h-48" />
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div className="card-base h-64" />
+            <div className="card-base h-64" />
+          </div>
         </div>
       ) : (
         <>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
-            <StatCard label="Students" value={summary?.students_count ?? summary?.students ?? 0} sub="enrolled" icon="🎓" color="#3b82f6" />
-            <StatCard label="Lecturers" value={summary?.lecturers_count ?? summary?.lecturers ?? 0} sub="active faculty" icon="👨‍🏫" color="#10b981" />
-            <StatCard label="Courses" value={summary?.courses_count ?? summary?.courses ?? 0} sub="across all departments" icon="📚" color="#8b5cf6" />
-            <StatCard label="Attendance Sessions" value={summary?.sessions_count ?? summary?.total_sessions ?? 0} sub={`${summary?.active_sessions ?? 0} active now`} icon="📋" color="#f59e0b" />
+            <StatCard label="Students" value={summary?.students ?? 0} sub="enrolled" icon="🎓" color="#6366f1" />
+            <StatCard label="Lecturers" value={summary?.lecturers ?? 0} sub="active faculty" icon="👨‍🏫" color="#10b981" />
+            <StatCard label="Courses" value={summary?.courses ?? 0} sub="across all departments" icon="📚" color="#8b5cf6" />
+            <StatCard label="Faculties" value={summary?.faculties ?? 0} sub={`${summary?.departments ?? 0} departments`} icon="🏛️" color="#f59e0b" />
           </div>
 
           <div className="grid gap-6 mb-6 lg:grid-cols-3">
-            <Card className="lg:col-span-2 p-6 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-slate-800">Weekly Attendance Trend</h3>
-                <span className="text-xs text-slate-400">This week</span>
+            <Card className="lg:col-span-2 p-6">
+              <div className="flex items-center justify-between mb-5">
+                <div>
+                  <h3 className="font-semibold text-surface-800">Weekly Attendance Trend</h3>
+                  <p className="text-xs text-surface-400 mt-0.5">Attendance distribution across the week</p>
+                </div>
+                {weekly.length > 0 && (
+                  <Badge variant="info">{weekly.reduce((a, b) => a + b.value, 0)} total</Badge>
+                )}
               </div>
-              <MiniBar data={weekly} color="#3b82f6" />
+              <MiniBar data={weekly} color="#6366f1" />
             </Card>
 
-            <Card className="p-6 shadow-sm">
-              <h3 className="font-semibold text-slate-800 mb-4">Institution Overview</h3>
-              <div className="space-y-4">
+            <Card className="p-6">
+              <h3 className="font-semibold text-surface-800 mb-5">Institution Overview</h3>
+              <div className="space-y-3">
                 {[
-                  { label: 'Faculties', value: summary?.faculties_count ?? summary?.faculties ?? 0, color: 'bg-blue-500' },
-                  { label: 'Departments', value: summary?.departments_count ?? 0, color: 'bg-emerald-500' },
-                  { label: 'Academic Levels', value: summary?.levels_count ?? 0, color: 'bg-purple-500' },
-                  { label: 'Total Enrollments', value: summary?.enrollments_count ?? summary?.total_enrollments ?? 0, color: 'bg-amber-500' },
+                  { label: 'Faculties', value: summary?.faculties ?? 0, color: 'bg-primary-500' },
+                  { label: 'Departments', value: summary?.departments ?? 0, color: 'bg-accent-500' },
+                  { label: 'Academic Levels', value: summary?.academic_levels ?? 0, color: 'bg-purple-500' },
+                  { label: 'Students', value: summary?.students ?? 0, color: 'bg-amber-500' },
                 ].map(item => (
-                  <div key={item.label} className="flex items-center justify-between">
-                    <span className="text-sm text-slate-600">{item.label}</span>
-                    <div className="flex items-center gap-2">
+                  <div key={item.label} className="flex items-center justify-between p-3 rounded-lg bg-surface-50">
+                    <span className="text-sm text-surface-600">{item.label}</span>
+                    <div className="flex items-center gap-2.5">
                       <div className={`w-2 h-2 rounded-full ${item.color}`} />
-                      <span className="text-lg font-bold text-slate-800">{item.value}</span>
+                      <span className="text-lg font-bold text-surface-800">{item.value}</span>
                     </div>
                   </div>
                 ))}
@@ -173,17 +150,25 @@ export default function Dashboard() {
 
           <div className="grid gap-6 mb-6 lg:grid-cols-2">
             {activeSessions.length > 0 && (
-              <Card className="p-6 shadow-sm border-l-4 border-l-emerald-500">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-slate-800">🟢 Active Sessions Now</h3>
-                  <Button variant="ghost" onClick={() => router.push('/sessions?status=active')}>View All</Button>
+              <Card className="p-0 overflow-hidden">
+                <div className="p-5 bg-gradient-to-r from-accent-50 to-accent-100/50 border-b border-accent-200/50">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-surface-800">Active Sessions Now</h3>
+                      <p className="text-xs text-surface-500 mt-0.5">{activeSessions.length} session{activeSessions.length > 1 ? 's' : ''} currently running</p>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => router.push('/sessions?status=active')}>View All</Button>
+                  </div>
                 </div>
-                <div className="space-y-3 max-h-64 overflow-auto">
+                <div className="p-4 space-y-2 max-h-72 overflow-auto">
                   {activeSessions.slice(0, 5).map(s => (
-                    <div key={s.id} className="flex items-center justify-between py-2 border-b last:border-0">
-                      <div>
-                        <div className="font-medium text-sm">{s.course?.code || 'Unknown'} <span className="text-slate-400 text-xs">#{s.id}</span></div>
-                        <div className="text-xs text-slate-500">{s.course?.lecturer?.name || '—'} • {s.starts_at ? new Date(s.starts_at).toLocaleTimeString() : '—'}</div>
+                    <div key={s.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-surface-50 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-accent-500 animate-pulse-soft" />
+                        <div>
+                          <div className="font-medium text-sm text-surface-800">{s.course?.code || 'Unknown'} <span className="text-surface-400 text-xs">#{s.id}</span></div>
+                          <div className="text-xs text-surface-500">{s.course?.lecturer?.name || '—'} • {s.starts_at ? new Date(s.starts_at).toLocaleTimeString() : '—'}</div>
+                        </div>
                       </div>
                       <Badge variant="success">{s.attendance_count ?? 0}/{s.expected_count ?? '?'}</Badge>
                     </div>
@@ -193,21 +178,26 @@ export default function Dashboard() {
             )}
 
             {recentUsers.length > 0 && (
-              <Card className="p-6 shadow-sm border-l-4 border-l-blue-500">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-slate-800">Recent Users</h3>
-                  <Button variant="ghost" onClick={() => router.push('/users')}>Manage</Button>
+              <Card className="p-0 overflow-hidden">
+                <div className="p-5 bg-gradient-to-r from-primary-50 to-primary-100/50 border-b border-primary-200/50">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-surface-800">Recent Users</h3>
+                      <p className="text-xs text-surface-500 mt-0.5">Latest registered users</p>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => router.push('/users')}>Manage</Button>
+                  </div>
                 </div>
-                <div className="space-y-3 max-h-64 overflow-auto">
+                <div className="p-4 space-y-1 max-h-72 overflow-auto">
                   {recentUsers.map(u => (
-                    <div key={u.id} className="flex items-center justify-between py-2 border-b last:border-0">
+                    <div key={u.id} className="flex items-center justify-between p-2.5 rounded-lg hover:bg-surface-50 transition-colors">
                       <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white ${u.role === 'lecturer' ? 'bg-emerald-500' : 'bg-blue-500'}`}>
+                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold text-white ${u.role === 'lecturer' ? 'bg-accent-500' : 'bg-primary-500'}`}>
                           {u.name?.charAt(0) || '?'}
                         </div>
                         <div>
-                          <div className="text-sm font-medium">{u.name}</div>
-                          <div className="text-xs text-slate-400">{u.email}</div>
+                          <div className="text-sm font-medium text-surface-800">{u.name}</div>
+                          <div className="text-xs text-surface-400">{u.email}</div>
                         </div>
                       </div>
                       <Badge variant={u.role === 'lecturer' ? 'info' : 'default'}>{u.role}</Badge>
@@ -220,48 +210,53 @@ export default function Dashboard() {
 
           <div className="grid gap-6 lg:grid-cols-2">
             {recentCourses.length > 0 && (
-              <Card className="p-6 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-slate-800">📚 Recent Courses</h3>
-                  <Button variant="ghost" onClick={() => router.push('/courses')}>All Courses</Button>
+              <Card className="p-0 overflow-hidden">
+                <div className="p-5 border-b border-surface-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-surface-800">Recent Courses</h3>
+                      <p className="text-xs text-surface-400 mt-0.5">Latest created courses</p>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => router.push('/courses')}>All Courses</Button>
+                  </div>
                 </div>
-                <Table>
-                  <Thead><Tr><Th>Code</Th><Th>Title</Th><Th>Lecturer</Th><Th>Students</Th></Tr></Thead>
-                  <Tbody>
-                    {recentCourses.map(c => (
-                      <Tr key={c.id}>
-                        <Td className="font-mono text-sm font-medium">{c.code}</Td>
-                        <Td className="text-sm">{c.title}</Td>
-                        <Td className="text-sm">{c.lecturer?.name || '—'}</Td>
-                        <Td className="text-sm">{c.roster_count || 0}</Td>
-                      </Tr>
-                    ))}
-                  </Tbody>
-                </Table>
+                <div className="p-0">
+                  <Table>
+                    <Thead><Tr><Th>Code</Th><Th>Title</Th><Th>Lecturer</Th><Th>Students</Th></Tr></Thead>
+                    <Tbody>
+                      {recentCourses.map(c => (
+                        <Tr key={c.id}>
+                          <Td className="font-mono text-sm font-medium text-primary-600">{c.code}</Td>
+                          <Td className="text-sm text-surface-800">{c.title}</Td>
+                          <Td className="text-sm text-surface-600">{c.lecturer?.name || '—'}</Td>
+                          <Td><Badge variant="info">{c.roster_count || 0}</Badge></Td>
+                        </Tr>
+                      ))}
+                    </Tbody>
+                  </Table>
+                </div>
               </Card>
             )}
 
-            <Card className="p-6 shadow-sm">
-              <h3 className="font-semibold text-slate-800 mb-4">🏛️ Academic Structure</h3>
-              <div className="space-y-3">
-                {summary?.faculties_count > 0 && (
-                  <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                    <span className="text-sm text-slate-600">Faculties</span>
-                    <span className="font-bold text-lg">{summary.faculties_count}</span>
-                  </div>
-                )}
-                {summary?.departments_count > 0 && (
-                  <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                    <span className="text-sm text-slate-600">Departments</span>
-                    <span className="font-bold text-lg">{summary.departments_count}</span>
-                  </div>
-                )}
-                {summary?.levels_count > 0 && (
-                  <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                    <span className="text-sm text-slate-600">Academic Levels</span>
-                    <span className="font-bold text-lg">{summary.levels_count}</span>
-                  </div>
-                )}
+            <Card className="p-6">
+              <h3 className="font-semibold text-surface-800 mb-5">Academic Structure</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 rounded-xl bg-gradient-to-br from-primary-50 to-primary-100/50 border border-primary-200/50">
+                  <div className="text-2xl font-bold text-primary-600">{summary?.faculties ?? 0}</div>
+                  <div className="text-sm text-primary-700 mt-1">Faculties</div>
+                </div>
+                <div className="p-4 rounded-xl bg-gradient-to-br from-accent-50 to-accent-100/50 border border-accent-200/50">
+                  <div className="text-2xl font-bold text-accent-600">{summary?.departments ?? 0}</div>
+                  <div className="text-sm text-accent-700 mt-1">Departments</div>
+                </div>
+                <div className="p-4 rounded-xl bg-gradient-to-br from-purple-50 to-purple-100/50 border border-purple-200/50">
+                  <div className="text-2xl font-bold text-purple-600">{summary?.academic_levels ?? 0}</div>
+                  <div className="text-sm text-purple-700 mt-1">Levels</div>
+                </div>
+                <div className="p-4 rounded-xl bg-gradient-to-br from-amber-50 to-amber-100/50 border border-amber-200/50">
+                  <div className="text-2xl font-bold text-amber-600">{summary?.students ?? 0}</div>
+                  <div className="text-sm text-amber-700 mt-1">Students</div>
+                </div>
               </div>
             </Card>
           </div>

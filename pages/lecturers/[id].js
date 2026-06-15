@@ -142,7 +142,7 @@ export default function LecturerDetail() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
             <StatCard label="Total Courses" value={courses.length} icon="📚" color="#3b82f6" />
             <StatCard label="Total Sessions" value={sessionsMeta.total} icon="📋" color="#8b5cf6" />
-            <StatCard label="Avg Attendance %" value={summary?.average_attendance_percentage != null ? `${Math.round(summary.average_attendance_percentage)}%` : '—'} icon="📊" color="#10b981" />
+            <StatCard label="Avg Attendance %" value={summary?.average_percentage != null ? `${Math.round(summary.average_percentage)}%` : '—'} icon="📊" color="#10b981" />
             <StatCard label="Present / Late / Absent" value={summary ? `${summary.present_count ?? 0} / ${summary.late_count ?? 0} / ${summary.absent_count ?? 0}` : '—'} icon="👥" color="#f59e0b" />
           </div>
 
