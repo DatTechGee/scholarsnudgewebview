@@ -5,30 +5,16 @@ import Sidebar from './Sidebar'
 import Header from './Header'
 
 export default function Layout({ children }) {
-  const { user, loading, logout } = useAuth()
+  const { user, ready, logout } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login')
+    if (ready && !user) {
+      router.replace('/login')
     }
-  }, [loading, user])
+  }, [ready, user])
 
-  if (loading) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-[#f3f6fb]">
-        <div className="flex flex-col items-center gap-5">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white font-extrabold text-xl shadow-glow-lg animate-pulse-soft">SN</div>
-          <div className="flex gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-primary-500 animate-bounce" style={{ animationDelay: '0ms' }} />
-            <div className="w-2.5 h-2.5 rounded-full bg-secondary-500 animate-bounce" style={{ animationDelay: '150ms' }} />
-            <div className="w-2.5 h-2.5 rounded-full bg-primary-500 animate-bounce" style={{ animationDelay: '300ms' }} />
-          </div>
-        </div>
-      </div>
-    )
-  }
-
+  if (!ready) return null
   if (!user) return null
 
   const isPublicPage = ['/login', '/register'].includes(router.pathname)

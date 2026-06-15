@@ -4,7 +4,7 @@ import Link from 'next/link'
 import Card from '../components/shadcn/Card'
 import Button from '../components/shadcn/Button'
 import Input from '../components/shadcn/Input'
-import { login, getMe } from '../services/api'
+import { login } from '../services/api'
 
 export default function Login() {
   const router = useRouter()
@@ -26,11 +26,11 @@ export default function Login() {
       if (!token) throw new Error('No token in response')
       window.localStorage.setItem('admin_token', token)
 
-      const meRes = await getMe(token)
-      const me = meRes?.data || meRes || {}
+      const me = res?.user || res?.data?.user || {}
       const role = me.role || 'admin'
       window.localStorage.setItem('user_role', role)
       window.localStorage.setItem('user_name', me.name || 'User')
+      window.localStorage.setItem('user_data', JSON.stringify(me))
 
       if (role === 'admin' || role === 'super_admin') router.push('/')
       else if (role === 'lecturer') router.push('/lecturer')
