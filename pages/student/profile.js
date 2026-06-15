@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/router'
 import Layout from '../../components/Layout'
 import Card from '../../components/shadcn/Card'
 import Badge from '../../components/shadcn/Badge'
 import Button from '../../components/shadcn/Button'
-import { getStudentFaceStatus, getStudentAttendanceReport } from '../../services/api'
+import { getStudentFaceStatus, getStudentAttendanceReport, changePassword } from '../../services/api'
 import { useAuth } from '../../components/AuthContext'
 
 export default function StudentProfile() {
+  const router = useRouter()
   const { user } = useAuth()
   const [faceStatus, setFaceStatus] = useState(null)
   const [report, setReport] = useState(null)
@@ -33,6 +35,29 @@ export default function StudentProfile() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const [pwForm, setPwForm] = useState({ current_password: '', password: '', password_confirmation: '' })
+  const [pwError, setPwError] = useState('')
+  const [pwSuccess, setPwSuccess] = useState('')
+  const [pwBusy, setPwBusy] = useState(false)
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault()
+    if (!pwForm.current_password || !pwForm.password || !pwForm.password_confirmation) {
+      setPwError('All password fields are required.'); return
+    }
+    if (pwForm.password.length < 8) { setPwError('New password must be at least 8 characters.'); return }
+    if (pwForm.password !== pwForm.password_confirmation) { setPwError('New passwords do not match.'); return }
+    setPwBusy(true); setPwError(''); setPwSuccess('')
+    const token = window.localStorage.getItem('admin_token') || ''
+    try {
+      const res = await changePassword(pwForm, token)
+      setPwSuccess(res?.message || 'Password changed successfully.')
+      setPwForm({ current_password: '', password: '', password_confirmation: '' })
+    } catch (err) {
+      setPwError(err?.response?.data?.message || err.message || 'Failed to change password.')
+    } finally { setPwBusy(false) }
   }
 
   const faceRegistered = faceStatus?.registered || faceStatus?.is_registered || false
@@ -103,7 +128,7 @@ export default function StudentProfile() {
             </div>
             {!faceRegistered ? (
               <div className="mt-4">
-                <Button variant="default" onClick={() => window.location.href = '/student/face-register'}>
+                <Button variant="default" onClick={() => router.push('/student/face-register')}>
                   Register Face
                 </Button>
               </div>
@@ -138,6 +163,33 @@ export default function StudentProfile() {
                 <p className="text-slate-800 font-medium">{user?.department_name || '—'}</p>
               </div>
             </div>
+          </Card>
+
+          <Card className="p-5">
+            <h3 className="font-semibold text-slate-800 mb-3">Change Password</h3>
+            {pwError ? <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700 text-sm">{pwError}</div> : null}
+            {pwSuccess ? <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-700 text-sm">{pwSuccess}</div> : null}
+            <form onSubmit={handleChangePassword} className="space-y-3 max-w-md">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Current Password</label>
+                <input type="password" value={pwForm.current_password} onChange={(e) => setPwForm({ ...pwForm, current_password: e.target.value })} required
+                  className="w-full px-3 py-2 border-2 rounded-xl text-sm bg-surface-50/80 focus:outline-none focus:border-primary-400 focus:bg-white transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">New Password</label>
+                <input type="password" value={pwForm.password} onChange={(e) => setPwForm({ ...pwForm, password: e.target.value })} required minLength={8}
+                  className="w-full px-3 py-2 border-2 rounded-xl text-sm bg-surface-50/80 focus:outline-none focus:border-primary-400 focus:bg-white transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Confirm New Password</label>
+                <input type="password" value={pwForm.password_confirmation} onChange={(e) => setPwForm({ ...pwForm, password_confirmation: e.target.value })} required
+                  className="w-full px-3 py-2 border-2 rounded-xl text-sm bg-surface-50/80 focus:outline-none focus:border-primary-400 focus:bg-white transition-all"
+                />
+              </div>
+              <Button type="submit" disabled={pwBusy}>{pwBusy ? 'Updating...' : 'Change Password'}</Button>
+            </form>
           </Card>
         </div>
       )}

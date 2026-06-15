@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/router'
 import Layout from '../components/Layout'
 import Button from '../components/shadcn/Button'
 import Card from '../components/shadcn/Card'
@@ -29,6 +30,7 @@ const emptyForm = {
 }
 
 export default function Students() {
+  const router = useRouter()
   const [tokenInput, setTokenInput] = useState('')
   const [query, setQuery] = useState('')
   const [students, setStudents] = useState([])
@@ -316,7 +318,7 @@ export default function Students() {
                     <div className="flex justify-end gap-2">
                       <Button variant="ghost" size="sm" onClick={() => openEditForm(student)}>Edit</Button>
                       <Button variant="destructive" size="sm" onClick={() => handleDelete(student)}>Delete</Button>
-                      <Button variant="outline" size="sm" onClick={() => window.location.href = `/students/${student.id}`}>View</Button>
+                      <Button variant="outline" size="sm" onClick={() => router.push(`/students/${student.id}`)}>View</Button>
                     </div>
                   </Td>
                 </Tr>

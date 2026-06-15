@@ -34,6 +34,26 @@ export async function getMe(token) {
   return res.data
 }
 
+export async function forgotPassword(email) {
+  const res = await client.post('/auth/forgot-password', { email })
+  return res.data
+}
+
+export async function resetPassword(payload) {
+  const res = await client.post('/auth/reset-password', payload)
+  return res.data
+}
+
+export async function updateProfile(payload, token) {
+  const res = await client.put('/auth/profile', payload, authConfig(token))
+  return res.data
+}
+
+export async function changePassword(payload, token) {
+  const res = await client.put('/auth/password', payload, authConfig(token))
+  return res.data
+}
+
 // ── Admin Dashboard ──
 export async function getDashboardSummary(token) {
   const res = await client.get('/admin/dashboard/summary', authConfig(token))

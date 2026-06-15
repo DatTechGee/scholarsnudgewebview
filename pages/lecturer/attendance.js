@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import Layout from '../../components/Layout'
 import Card from '../../components/shadcn/Card'
@@ -69,6 +69,27 @@ export default function LecturerAttendance() {
     )
   }, [attendance, filter])
 
+  const downloadCSV = useCallback(() => {
+    if (!filtered.length) return
+    const headers = ['Student', 'Matric', 'Session', 'Status', 'Date', 'Time', 'Distance', 'Late']
+    const rows = filtered.map(a => [
+      a.student?.name || a.student_name || '',
+      a.student?.matric_number || '',
+      `#${a.attendance_session_id}`,
+      a.status || '',
+      a.checked_in_at ? new Date(a.checked_in_at).toLocaleDateString() : '',
+      a.checked_in_at ? new Date(a.checked_in_at).toLocaleTimeString() : '',
+      a.distance_at_checkin ? `${Math.round(a.distance_at_checkin)}m` : '',
+      a.is_late ? 'Yes' : 'No',
+    ])
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = `attendance-${selectedCourse}.csv`
+    a.click(); URL.revokeObjectURL(url)
+  }, [filtered, selectedCourse])
+
   if (!token) {
     return <Layout><Card className="p-8 text-center"><p className="text-slate-500 mb-4">Please sign in first.</p><Button onClick={() => router.push('/login')}>Sign In</Button></Card></Layout>
   }
@@ -110,7 +131,8 @@ export default function LecturerAttendance() {
                 >{s || 'All'}</button>
               ))}
             </div>
-            <span className="text-xs text-slate-400 ml-auto">{filtered.length} records</span>
+            <span className="text-xs text-slate-400">{filtered.length} records</span>
+            {filtered.length ? <Button variant="outline" onClick={downloadCSV} className="text-xs h-8 px-3">Export CSV</Button> : null}
           </div>
 
           {loading ? (

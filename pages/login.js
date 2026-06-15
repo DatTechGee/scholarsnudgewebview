@@ -32,9 +32,9 @@ export default function Login() {
       window.localStorage.setItem('user_role', role)
       window.localStorage.setItem('user_name', me.name || 'User')
 
-      if (role === 'admin' || role === 'super_admin') window.location.href = '/'
-      else if (role === 'lecturer') window.location.href = '/lecturer'
-      else window.location.href = '/student'
+      if (role === 'admin' || role === 'super_admin') router.push('/')
+      else if (role === 'lecturer') router.push('/lecturer')
+      else router.push('/student')
     } catch (err) {
       const msg = err?.response?.data?.message || err.message || 'Login failed'
       setError(typeof msg === 'string' ? msg : 'Invalid credentials')
@@ -100,6 +100,9 @@ export default function Login() {
                 className="w-full h-[52px] rounded-xl border-2 bg-surface-50/80 pl-12 pr-4 text-sm font-medium text-surface-800 placeholder:text-surface-400 focus:outline-none focus:border-primary-400 focus:bg-white transition-all"
               />
             </div>
+          </div>
+          <div className="text-right">
+            <Link href="/forgot-password" className="text-xs font-semibold text-primary-600 hover:text-primary-700">Forgot password?</Link>
           </div>
           <Button type="submit" className="w-full h-[52px] text-base" disabled={busy}>
             {busy ? (

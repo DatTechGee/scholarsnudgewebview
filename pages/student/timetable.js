@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/router'
 import Layout from '../../components/Layout'
 import Card from '../../components/shadcn/Card'
 import Badge from '../../components/shadcn/Badge'
@@ -8,6 +9,7 @@ import { getStudentTimetable } from '../../services/api'
 const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
 
 export default function StudentTimetable() {
+  const router = useRouter()
   const [token, setToken] = useState('')
   const [timetable, setTimetable] = useState([])
   const [loading, setLoading] = useState(true)
@@ -37,7 +39,7 @@ export default function StudentTimetable() {
   })
 
   if (!token) {
-    return <Layout><Card className="p-8 text-center"><p className="text-slate-500 mb-4">Please sign in first.</p><Button onClick={() => window.location.href = '/login'}>Sign In</Button></Card></Layout>
+    return <Layout><Card className="p-8 text-center"><p className="text-slate-500 mb-4">Please sign in first.</p><Button onClick={() => router.push('/login')}>Sign In</Button></Card></Layout>
   }
 
   return (
