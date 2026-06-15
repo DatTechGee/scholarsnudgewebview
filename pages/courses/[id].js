@@ -75,7 +75,7 @@ export default function CourseDetail() {
                 <h1 className="text-2xl font-bold">{course.title || 'Untitled Course'}</h1>
                 <p className="text-sm text-slate-500 font-mono">{course.code || '—'}</p>
               </div>
-              <Badge variant="info">{course.academic_level || '—'}</Badge>
+              <Badge variant="info">{typeof course.academic_level === 'object' ? course.academic_level?.name : course.academic_level || '—'}</Badge>
             </div>
             <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
@@ -84,7 +84,7 @@ export default function CourseDetail() {
               </div>
               <div>
                 <span className="text-sm text-slate-500">Academic Level</span>
-                <div className="font-medium">{course.academic_level || '—'}</div>
+                <div className="font-medium">{typeof course.academic_level === 'object' ? course.academic_level?.name : course.academic_level || '—'}</div>
               </div>
               <div>
                 <span className="text-sm text-slate-500">Roster Count</span>

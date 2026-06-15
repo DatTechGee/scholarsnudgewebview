@@ -471,7 +471,7 @@ export default function ManageCourse() {
                   </div>
                   <div>
                     <span className="text-xs text-slate-500 uppercase tracking-wide">Level</span>
-                    <p className="text-slate-700">{course.academic_level || course.academic_level_id || '—'}</p>
+                    <p className="text-slate-700">{typeof course.academic_level === 'object' ? course.academic_level?.name : course.academic_level || course.academic_level_id || '—'}</p>
                   </div>
                   <div>
                     <span className="text-xs text-slate-500 uppercase tracking-wide">Course Unit</span>
