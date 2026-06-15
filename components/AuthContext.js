@@ -10,7 +10,10 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const token = typeof window !== 'undefined' ? window.localStorage.getItem('admin_token') : null
     if (token) {
+      let cancelled = false
+      const timer = setTimeout(() => { if (!cancelled) { setLoading(false) } }, 3000)
       getMe(token).then(res => {
+        if (cancelled) return
         const me = res?.data || res || {}
         setUser({
           name: me.name || 'User',
@@ -25,8 +28,12 @@ export function AuthProvider({ children }) {
           profile_image_url: me.profile_image_url,
         })
       }).catch(() => {
+        if (cancelled) return
         window.localStorage.removeItem('admin_token')
-      }).finally(() => setLoading(false))
+      }).finally(() => {
+        clearTimeout(timer)
+        if (!cancelled) setLoading(false)
+      })
     } else {
       setLoading(false)
     }

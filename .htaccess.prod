@@ -1,0 +1,18 @@
+DirectorySlash Off
+RewriteEngine On
+
+# Serve index.html for requests to the root (/school)
+RewriteRule ^$ index.html [L]
+
+# Remove trailing slash from directories (e.g., /school/lecturer/ -> /school/lecturer)
+RewriteRule ^(.+)/$ $1 [L,R=301]
+
+# Rewrite clean URLs to .html files
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}.html -f
+RewriteRule ^(.+)$ $1.html [L]
+
+# Serve index.html for directory requests (e.g., /school/lecturer -> /school/lecturer/index.html)
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^(.+)$ $1/index.html [L]
