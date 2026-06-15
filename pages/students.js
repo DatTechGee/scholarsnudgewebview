@@ -6,6 +6,7 @@ import Badge from '../components/shadcn/Badge'
 import Input from '../components/shadcn/Input'
 import Select from '../components/shadcn/Select'
 import Modal from '../components/shadcn/Modal'
+import { Table, Thead, Th, Tbody, Tr, Td } from '../components/shadcn/Table'
 import {
   createUser,
   deleteUser,
@@ -285,42 +286,42 @@ export default function Students() {
 
         {!loading && students.length > 0 ? (
           <Table>
-            <thead className="bg-slate-50 text-left text-sm">
-              <tr>
-                <th className="px-4 py-3">Name</th>
-                <th className="px-4 py-3">Email</th>
-                <th className="px-4 py-3">Matric Number</th>
-                <th className="px-4 py-3">Faculty / Department</th>
-                <th className="px-4 py-3">Level</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+            <Thead>
+              <Tr>
+                <Th>Name</Th>
+                <Th>Email</Th>
+                <Th>Matric Number</Th>
+                <Th>Faculty / Department</Th>
+                <Th>Level</Th>
+                <Th>Status</Th>
+                <Th className="text-right">Actions</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
               {students.map((student) => (
-                <tr key={student.id} className="border-t hover:bg-slate-50">
-                  <td className="px-4 py-3">{student.name}</td>
-                  <td className="px-4 py-3">{student.email}</td>
-                  <td className="px-4 py-3">{student.matric_number || '-'}</td>
-                  <td className="px-4 py-3">
-                    {student.faculty?.name || '-'} / {student.department?.name || '-'}
-                  </td>
-                  <td className="px-4 py-3">{student.academic_level?.name || '-'}</td>
-                  <td className="px-4 py-3">
+                <Tr key={student.id}>
+                  <Td className="font-medium">{student.name}</Td>
+                  <Td className="text-surface-500">{student.email}</Td>
+                  <Td>{student.matric_number || '-'}</Td>
+                  <Td>
+                    {student.faculty_name || '-'} / {student.department_name || '-'}
+                  </Td>
+                  <Td>{student.academic_level?.name || '-'}</Td>
+                  <Td>
                     <Badge variant={student.is_verified ? 'success' : 'warning'}>
                       {student.is_verified ? 'Verified' : 'Pending'}
                     </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-right">
+                  </Td>
+                  <Td className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button variant="ghost" onClick={() => openEditForm(student)}>Edit</Button>
-                      <Button variant="destructive" onClick={() => handleDelete(student)}>Delete</Button>
-                      <Button variant="ghost" onClick={() => window.location.href = `/students/${student.id}`}>View</Button>
+                      <Button variant="ghost" size="sm" onClick={() => openEditForm(student)}>Edit</Button>
+                      <Button variant="destructive" size="sm" onClick={() => handleDelete(student)}>Delete</Button>
+                      <Button variant="outline" size="sm" onClick={() => window.location.href = `/students/${student.id}`}>View</Button>
                     </div>
-                  </td>
-                </tr>
+                  </Td>
+                </Tr>
               ))}
-            </tbody>
+            </Tbody>
           </Table>
         ) : null}
 

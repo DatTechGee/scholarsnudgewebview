@@ -23,11 +23,13 @@ export default function Register() {
   const [facePreview, setFacePreview] = useState(null)
   const [showCamera, setShowCamera] = useState(false)
   const [cameraStream, setCameraStream] = useState(null)
+  const [videoReady, setVideoReady] = useState(false)
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
 
   const startCamera = useCallback(async () => {
     setError('')
+    setVideoReady(false)
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
@@ -53,11 +55,11 @@ export default function Register() {
   const captureFrame = useCallback(() => {
     const video = videoRef.current
     const canvas = canvasRef.current
-    if (!video || !canvas) return
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
+    if (!video || !canvas || !videoReady) return
+    canvas.width = video.videoWidth || 640
+    canvas.height = video.videoHeight || 480
     const ctx = canvas.getContext('2d')
-    ctx.drawImage(video, 0, 0)
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
     canvas.toBlob((blob) => {
       if (blob) {
         const file = new File([blob], 'face.jpg', { type: 'image/jpeg' })
@@ -66,7 +68,7 @@ export default function Register() {
       }
     }, 'image/jpeg', 0.9)
     stopCamera()
-  }, [stopCamera])
+  }, [stopCamera, videoReady])
 
   const handleFileSelect = (e) => {
     const file = e.target.files?.[0]

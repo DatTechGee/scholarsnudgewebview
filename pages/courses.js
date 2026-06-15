@@ -44,23 +44,34 @@ export default function Courses() {
     <Layout>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Courses</h1>
-          <p className="text-slate-500">All courses across the institution</p>
+          <h1 className="text-2xl font-bold text-surface-800">Courses</h1>
+          <p className="text-sm text-surface-500 mt-0.5">All courses across the institution</p>
         </div>
-        <Button variant="ghost" onClick={loadCourses} disabled={loading}>{loading ? 'Loading...' : 'Refresh'}</Button>
+        <div className="flex items-center gap-3">
+          <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-100 text-surface-600 text-xs font-medium">
+            <div className="w-2 h-2 rounded-full bg-primary-500" />
+            {meta.total} total
+          </span>
+          <Button variant="outline" size="sm" onClick={loadCourses} disabled={loading}>{loading ? 'Loading...' : 'Refresh'}</Button>
+        </div>
       </div>
 
-      {error ? <div className="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700 text-sm">{error}</div> : null}
+      {error ? (
+        <Card className="mb-4 p-4 bg-red-50 border-red-200 text-red-700 text-sm flex items-center gap-2">
+          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          {error}
+        </Card>
+      ) : null}
 
       {!token ? (
-        <Card className="p-8 text-center text-slate-400">Enter your admin token in the Users page first.</Card>
+        <Card className="p-12 text-center text-surface-400 text-sm">Enter your admin token in the Users page first.</Card>
       ) : loading ? (
-        <div className="space-y-3">{[1,2,3].map(i => <Card key={i} className="h-16 animate-pulse bg-slate-100" />)}</div>
+        <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="card-base h-16 animate-pulse" />)}</div>
       ) : courses.length === 0 ? (
-        <Card className="p-8 text-center text-slate-400">No courses found.</Card>
+        <Card className="p-12 text-center text-surface-400 text-sm">No courses found.</Card>
       ) : (
-        <>
-          <Card className="p-0">
+        <Card className="p-0 overflow-hidden">
+          <div className="overflow-x-auto">
             <Table>
               <Thead>
                 <Tr><Th>Code</Th><Th>Title</Th><Th>Lecturer</Th><Th>Faculty</Th><Th>Units</Th><Th>Location</Th></Tr>
@@ -68,26 +79,26 @@ export default function Courses() {
               <Tbody>
                 {courses.map(c => (
                   <Tr key={c.id}>
-                    <Td className="font-mono font-medium">{c.code}</Td>
-                    <Td>{c.title}</Td>
-                    <Td>{c.lecturer?.name || '—'}</Td>
-                    <Td className="text-sm">{c.faculty_name || '—'}</Td>
-                    <Td>{c.course_unit || '—'}</Td>
-                    <Td>{c.location_name || '—'}</Td>
+                    <Td className="font-mono font-medium text-primary-600">{c.code}</Td>
+                    <Td className="text-surface-800 font-medium">{c.title}</Td>
+                    <Td className="text-surface-600">{c.lecturer?.name || <span className="text-surface-300">—</span>}</Td>
+                    <Td className="text-surface-500">{c.faculty_name || <span className="text-surface-300">—</span>}</Td>
+                    <Td><Badge variant="outline">{c.course_unit || '—'}</Badge></Td>
+                    <Td className="text-surface-500">{c.location_name || <span className="text-surface-300">—</span>}</Td>
                   </Tr>
                 ))}
               </Tbody>
             </Table>
-          </Card>
-          <div className="mt-4 flex items-center justify-between text-sm text-slate-500">
-            <span>Total: {meta.total} courses</span>
-            <div className="flex gap-2">
-              <Button variant="ghost" disabled={meta.current_page <= 1} onClick={() => loadCourses(meta.current_page - 1)}>Previous</Button>
-              <span className="py-2">Page {meta.current_page} of {meta.last_page}</span>
-              <Button variant="ghost" disabled={meta.current_page >= meta.last_page} onClick={() => loadCourses(meta.current_page + 1)}>Next</Button>
+          </div>
+          <div className="flex items-center justify-between px-4 py-3 border-t border-surface-200 bg-surface-50">
+            <span className="text-sm text-surface-500">Total: {meta.total} courses</span>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" disabled={meta.current_page <= 1} onClick={() => loadCourses(meta.current_page - 1)}>Previous</Button>
+              <span className="text-sm text-surface-500 px-2">Page {meta.current_page} of {meta.last_page}</span>
+              <Button variant="outline" size="sm" disabled={meta.current_page >= meta.last_page} onClick={() => loadCourses(meta.current_page + 1)}>Next</Button>
             </div>
           </div>
-        </>
+        </Card>
       )}
     </Layout>
   )

@@ -176,140 +176,146 @@ export default function Lecturers() {
     <Layout>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Lecturers</h1>
-          <p className="text-slate-500">Manage all lecturer accounts</p>
+          <h1 className="text-2xl font-bold text-surface-800">Lecturers</h1>
+          <p className="text-sm text-surface-500 mt-0.5">Manage all lecturer accounts</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="default" onClick={openCreateForm}>Add Lecturer</Button>
-          <Button variant="ghost" onClick={() => loadLecturers(meta.current_page)} disabled={loading}>
+        <div className="flex items-center gap-3">
+          <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-100 text-surface-600 text-xs font-medium">
+            <div className="w-2 h-2 rounded-full bg-accent-500" />
+            {meta.total} total
+          </span>
+          <Button variant="default" size="sm" onClick={openCreateForm}>Add Lecturer</Button>
+          <Button variant="outline" size="sm" onClick={() => loadLecturers(meta.current_page)} disabled={loading}>
             {loading ? 'Loading...' : 'Refresh'}
           </Button>
         </div>
       </div>
 
-      <Card className="mb-4">
-        <label className="mb-2 block text-sm font-medium">Admin bearer token</label>
-        <Input
-          type="password"
-          value={tokenInput}
-          onChange={(event) => setTokenInput(event.target.value)}
-          placeholder="Paste admin token to call protected endpoints"
-        />
+      <Card className="mb-4 p-4 bg-gradient-to-r from-surface-50 to-white">
+        <div className="flex items-center gap-3">
+          <svg className="w-5 h-5 text-surface-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+          <Input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search by name, email, or staff ID..."
+            className="border-0 bg-transparent pl-0 focus:ring-0"
+          />
+        </div>
       </Card>
 
-      <Card className="mb-4">
-        <Input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search by name, email, or staff ID..."
-        />
-      </Card>
-
-      {message ? <Card className="mb-4 border-green-200 bg-green-50 text-green-700">{message}</Card> : null}
-      {error ? <Card className="mb-4 border-red-200 bg-red-50 text-red-700">{error}</Card> : null}
+      {message ? (
+        <Card className="mb-4 p-4 bg-accent-50 border-accent-200 text-accent-800 text-sm flex items-center gap-2">
+          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          {message}
+        </Card>
+      ) : null}
+      {error ? (
+        <Card className="mb-4 p-4 bg-red-50 border-red-200 text-red-700 text-sm flex items-center gap-2">
+          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          {error}
+        </Card>
+      ) : null}
 
       {showForm ? (
-        <Card className="mb-4">
-          <h2 className="text-lg font-semibold mb-3">{editingUser ? 'Edit Lecturer' : 'Create Lecturer'}</h2>
-          <div className="grid gap-3 md:grid-cols-2">
-            <Input
-              value={form.name}
-              onChange={(event) => handleFormChange('name', event.target.value)}
-              placeholder="Full name"
-            />
-            <Input
-              value={form.email}
-              onChange={(event) => handleFormChange('email', event.target.value)}
-              placeholder="Email"
-            />
-            <Input
-              type="password"
-              value={form.password}
-              onChange={(event) => handleFormChange('password', event.target.value)}
-              placeholder={editingUser ? 'New password (optional)' : 'Password (optional)'}
-            />
-            <select
-              value={form.faculty_id}
-              onChange={(event) => handleFormChange('faculty_id', event.target.value)}
-              className="rounded border px-3 py-2"
-            >
-              <option value="">Select faculty</option>
-              {faculties.map((item) => (
-                <option key={item.id} value={item.id}>{item.name}</option>
-              ))}
-            </select>
-            <Input
-              value={form.staff_id}
-              onChange={(event) => handleFormChange('staff_id', event.target.value)}
-              placeholder="Staff ID"
-            />
+        <Card className="mb-6 p-6">
+          <h2 className="text-lg font-semibold text-surface-800 mb-4">{editingUser ? 'Edit Lecturer' : 'Create Lecturer'}</h2>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium text-surface-700 mb-1.5">Full Name</label>
+              <Input value={form.name} onChange={(event) => handleFormChange('name', event.target.value)} placeholder="Full name" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-surface-700 mb-1.5">Email</label>
+              <Input value={form.email} onChange={(event) => handleFormChange('email', event.target.value)} placeholder="Email" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-surface-700 mb-1.5">{editingUser ? 'New Password (optional)' : 'Password'}</label>
+              <Input type="password" value={form.password} onChange={(event) => handleFormChange('password', event.target.value)} placeholder={editingUser ? 'Leave blank to keep current' : 'Password'} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-surface-700 mb-1.5">Faculty</label>
+              <select value={form.faculty_id} onChange={(event) => handleFormChange('faculty_id', event.target.value)} className="w-full rounded-lg border border-surface-300 px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500">
+                <option value="">Select faculty</option>
+                {faculties.map((item) => (
+                  <option key={item.id} value={item.id}>{item.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-surface-700 mb-1.5">Staff ID</label>
+              <Input value={form.staff_id} onChange={(event) => handleFormChange('staff_id', event.target.value)} placeholder="Staff ID" />
+            </div>
+            <div className="hidden md:block" />
           </div>
-          <div className="mt-4 flex gap-2">
+          <div className="mt-6 flex gap-3">
             <Button variant="default" onClick={handleSubmit} disabled={busy}>
               {editingUser ? 'Save Changes' : 'Create Lecturer'}
             </Button>
-            <Button variant="ghost" onClick={() => setShowForm(false)} disabled={busy}>Cancel</Button>
+            <Button variant="secondary" onClick={() => setShowForm(false)} disabled={busy}>Cancel</Button>
           </div>
         </Card>
       ) : null}
 
-      <Card className="p-0">
+      <Card className="p-0 overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-slate-400">Loading lecturers...</div>
+          <div className="p-12 text-center text-surface-400 text-sm">Loading lecturers...</div>
         ) : users.length === 0 ? (
-          <div className="p-8 text-center text-slate-400">No lecturers found.</div>
+          <div className="p-12 text-center text-surface-400 text-sm">No lecturers found.</div>
         ) : (
-          <Table>
-            <Thead>
-              <Tr>
-                <Th>Name</Th>
-                <Th>Email</Th>
-                <Th>Staff ID</Th>
-                <Th>Faculty</Th>
-                <Th>Status</Th>
-                <Th className="text-right">Actions</Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              {users.map((user) => (
-                <Tr key={user.id}>
-                  <Td className="font-medium">{user.name}</Td>
-                  <Td>{user.email}</Td>
-                  <Td className="font-mono">{user.staff_id || '-'}</Td>
-                  <Td>{user.faculty_name || '-'}</Td>
-                  <Td>
-                    <Badge variant={user.is_verified ? 'success' : 'warning'}>
-                      {user.is_verified ? 'Verified' : 'Pending'}
-                    </Badge>
-                  </Td>
-                  <Td className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Link href={`/lecturers/${user.id}`}>
-                        <Button variant="ghost">View</Button>
-                      </Link>
-                      <Button variant="ghost" onClick={() => openEditForm(user)}>Edit</Button>
-                      <Button variant="destructive" onClick={() => handleDelete(user)}>Delete</Button>
-                    </div>
-                  </Td>
-                </Tr>
-              ))}
-            </Tbody>
-          </Table>
+          <>
+            <div className="overflow-x-auto">
+              <Table>
+                <Thead>
+                  <Tr>
+                    <Th>Name</Th>
+                    <Th>Email</Th>
+                    <Th>Staff ID</Th>
+                    <Th>Faculty</Th>
+                    <Th>Status</Th>
+                    <Th className="text-right">Actions</Th>
+                  </Tr>
+                </Thead>
+                <Tbody>
+                  {users.map((user) => (
+                    <Tr key={user.id}>
+                      <Td className="font-medium text-surface-800">{user.name}</Td>
+                      <Td className="text-surface-500">{user.email}</Td>
+                      <Td className="font-mono text-sm">{user.staff_id || <span className="text-surface-300">—</span>}</Td>
+                      <Td className="text-surface-600">{user.faculty_name || <span className="text-surface-300">—</span>}</Td>
+                      <Td>
+                        <Badge variant={user.is_verified ? 'success' : 'warning'}>
+                          {user.is_verified ? 'Verified' : 'Pending'}
+                        </Badge>
+                      </Td>
+                      <Td className="text-right">
+                        <div className="flex justify-end gap-1.5">
+                          <Link href={`/lecturers/${user.id}`}>
+                            <Button variant="ghost" size="sm">View</Button>
+                          </Link>
+                          <Button variant="ghost" size="sm" onClick={() => openEditForm(user)}>Edit</Button>
+                          <Button variant="destructive" size="sm" onClick={() => handleDelete(user)}>Delete</Button>
+                        </div>
+                      </Td>
+                    </Tr>
+                  ))}
+                </Tbody>
+              </Table>
+            </div>
+            <div className="flex items-center justify-between px-4 py-3 border-t border-surface-200 bg-surface-50">
+              <span className="text-sm text-surface-500">Total: {meta.total} lecturers</span>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" disabled={meta.current_page <= 1 || loading} onClick={() => loadLecturers(meta.current_page - 1)}>
+                  Previous
+                </Button>
+                <span className="text-sm text-surface-500 px-2">Page {meta.current_page} of {meta.last_page}</span>
+                <Button variant="outline" size="sm" disabled={meta.current_page >= meta.last_page || loading} onClick={() => loadLecturers(meta.current_page + 1)}>
+                  Next
+                </Button>
+              </div>
+            </div>
+          </>
         )}
       </Card>
-
-      <div className="mt-4 flex items-center justify-between text-sm text-slate-500">
-        <span>Total: {meta.total} lecturers</span>
-        <div className="flex gap-2">
-          <Button variant="ghost" disabled={meta.current_page <= 1 || loading} onClick={() => loadLecturers(meta.current_page - 1)}>
-            Previous
-          </Button>
-          <span className="py-2">Page {meta.current_page} of {meta.last_page}</span>
-          <Button variant="ghost" disabled={meta.current_page >= meta.last_page || loading} onClick={() => loadLecturers(meta.current_page + 1)}>
-            Next
-          </Button>
-        </div>
-      </div>
     </Layout>
   )
 }
