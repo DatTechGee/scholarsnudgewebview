@@ -2,37 +2,73 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body, #__next {
-  height: 100%;
-}
+html, body, #__next { height: 100%; }
 
 body {
-  @apply bg-[#f0f2f5] text-surface-800 antialiased;
+  @apply bg-[#f3f6fb] text-surface-800 antialiased;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
 }
 
-/* Smooth transitions */
 * { @apply transition-colors duration-150; }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { @apply bg-surface-300 rounded-full; }
 ::-webkit-scrollbar-thumb:hover { @apply bg-surface-400; }
 
-/* Page wrapper */
-.page-enter { animation: pageEnter 0.25s ease-out; }
-@keyframes pageEnter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+/* ── Card base ── */
+.card-base {
+  @apply bg-white rounded-2xl border border-surface-200/60 shadow-soft;
+}
 
-/* Card base */
-.card-base { @apply bg-white rounded-xl border border-surface-200/60 shadow-soft; }
+/* ── Stat card with app-style hover ── */
+.stat-card {
+  @apply card-base p-5 transition-all duration-200;
+}
+.stat-card:hover {
+  @apply shadow-card -translate-y-0.5;
+}
 
-/* Stat card */
-.stat-card { @apply card-base p-5 hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200; }
+/* ── Glass card ── */
+.glass-card {
+  background: rgba(255,255,255,0.88);
+  backdrop-filter: blur(12px);
+  @apply rounded-2xl border border-white/30 shadow-card;
+}
 
+/* ── Gradient icon container ── */
+.icon-box {
+  @apply flex items-center justify-center shrink-0;
+  background: linear-gradient(135deg, #2f6df6, #06b6d4);
+  border-radius: 14px;
+}
+
+/* ── Premium badge ── */
+.badge-premium {
+  @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider;
+}
+
+/* ── Page enter animation ── */
+.page-enter { animation: pageEnter 0.3s ease-out; }
+@keyframes pageEnter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── Skeleton shimmer ── */
 .skeleton {
-  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background: linear-gradient(90deg, #e8edf5 25%, #d7e3f6 50%, #e8edf5 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
 }
 @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+/* ── Gradient text ── */
+.text-gradient {
+  background: linear-gradient(135deg, #2f6df6, #06b6d4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Notification alert boxes ── */
+.alert-box {
+  @apply flex items-start gap-3 px-4 py-3.5 rounded-xl text-sm font-medium border;
+}

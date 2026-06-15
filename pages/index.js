@@ -13,11 +13,11 @@ function StatCard({ label, value, sub, icon, color }) {
     <div className="stat-card">
       <div className="flex items-center justify-between">
         <div>
-          <div className="text-2xl font-bold text-surface-800">{value ?? '—'}</div>
-          <div className="text-sm text-surface-500 mt-0.5">{label}</div>
-          {sub ? <div className="text-xs text-surface-400 mt-1">{sub}</div> : null}
+          <div className="text-3xl font-extrabold text-surface-800">{value ?? '—'}</div>
+          <div className="text-sm font-semibold text-surface-500 mt-0.5">{label}</div>
+          {sub ? <div className="text-xs font-medium text-surface-400 mt-1">{sub}</div> : null}
         </div>
-        <div className="w-11 h-11 rounded-xl flex items-center justify-center text-lg shrink-0" style={{ backgroundColor: color + '18' }}>
+        <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0" style={{ background: `linear-gradient(135deg, ${color}15, ${color}08)` }}>
           <span>{icon}</span>
         </div>
       </div>
@@ -26,15 +26,15 @@ function StatCard({ label, value, sub, icon, color }) {
 }
 
 function MiniBar({ data, color }) {
-  if (!data || data.length === 0) return <p className="text-sm text-surface-400 py-10 text-center">No attendance data yet</p>
+  if (!data || data.length === 0) return <p className="text-sm text-surface-400 py-12 text-center font-medium">No attendance data yet</p>
   const max = Math.max(...data.map(d => d.value), 1)
   return (
-    <div className="flex items-end gap-1.5 h-36">
+    <div className="flex items-end gap-1.5 h-40">
       {data.map((d, i) => (
         <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
-          <div className="text-[10px] text-surface-500 font-semibold">{d.value}</div>
-          <div className="w-full rounded-t-md transition-all duration-300 hover:opacity-80" style={{ height: `${(d.value / max) * 100}%`, background: color, minHeight: 4 }} title={d.label} />
-          <div className="text-[9px] text-surface-400 truncate w-full text-center font-medium">{d.label}</div>
+          <div className="text-[11px] font-bold text-surface-500">{d.value}</div>
+          <div className="w-full rounded-lg transition-all duration-300 hover:opacity-80" style={{ height: `${(d.value / max) * 100}%`, background: `linear-gradient(180deg, ${color}, ${color}cc)`, minHeight: 4 }} title={d.label} />
+          <div className="text-[9px] font-bold text-surface-400 truncate w-full text-center uppercase tracking-wider">{d.label}</div>
         </div>
       ))}
     </div>
@@ -96,20 +96,20 @@ export default function Dashboard() {
       {loading ? (
         <div className="space-y-6 animate-pulse">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {[1,2,3,4].map(i => <div key={i} className="card-base h-28" />)}
+            {[1,2,3,4].map(i => <div key={i} className="card-base h-[120px]" />)}
           </div>
-          <div className="card-base h-48" />
+          <div className="card-base h-56" />
           <div className="grid gap-6 lg:grid-cols-2">
-            <div className="card-base h-64" />
-            <div className="card-base h-64" />
+            <div className="card-base h-72" />
+            <div className="card-base h-72" />
           </div>
         </div>
       ) : (
         <>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
-            <StatCard label="Students" value={summary?.students ?? 0} sub="enrolled" icon="🎓" color="#6366f1" />
-            <StatCard label="Lecturers" value={summary?.lecturers ?? 0} sub="active faculty" icon="👨‍🏫" color="#10b981" />
-            <StatCard label="Courses" value={summary?.courses ?? 0} sub="across all departments" icon="📚" color="#8b5cf6" />
+            <StatCard label="Students" value={summary?.students ?? 0} sub="Enrolled" icon="🎓" color="#6366f1" />
+            <StatCard label="Lecturers" value={summary?.lecturers ?? 0} sub="Active faculty" icon="👨‍🏫" color="#10b981" />
+            <StatCard label="Courses" value={summary?.courses ?? 0} sub="Across all departments" icon="📚" color="#2f6df6" />
             <StatCard label="Faculties" value={summary?.faculties ?? 0} sub={`${summary?.departments ?? 0} departments`} icon="🏛️" color="#f59e0b" />
           </div>
 
@@ -117,30 +117,38 @@ export default function Dashboard() {
             <Card className="lg:col-span-2 p-6">
               <div className="flex items-center justify-between mb-5">
                 <div>
-                  <h3 className="font-semibold text-surface-800">Weekly Attendance Trend</h3>
-                  <p className="text-xs text-surface-400 mt-0.5">Attendance distribution across the week</p>
+                  <h3 className="text-heading3 text-surface-800">Weekly Attendance Trend</h3>
+                  <p className="text-sm font-medium text-surface-400 mt-0.5">Attendance distribution across the week</p>
                 </div>
                 {weekly.length > 0 && (
-                  <Badge variant="info">{weekly.reduce((a, b) => a + b.value, 0)} total</Badge>
+                  <Badge variant="info" className="text-xs">{weekly.reduce((a, b) => a + b.value, 0)} total</Badge>
                 )}
               </div>
-              <MiniBar data={weekly} color="#6366f1" />
+              <MiniBar data={weekly} color="#2f6df6" />
             </Card>
 
             <Card className="p-6">
-              <h3 className="font-semibold text-surface-800 mb-5">Institution Overview</h3>
+              <div className="flex items-center gap-3 mb-5">
+                <div className="icon-box w-10 h-10">
+                  <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                </div>
+                <div>
+                  <h3 className="text-heading3 text-surface-800">Institution Overview</h3>
+                  <p className="text-sm font-medium text-surface-400 mt-0.5">Key metrics at a glance</p>
+                </div>
+              </div>
               <div className="space-y-3">
                 {[
-                  { label: 'Faculties', value: summary?.faculties ?? 0, color: 'bg-primary-500' },
-                  { label: 'Departments', value: summary?.departments ?? 0, color: 'bg-accent-500' },
-                  { label: 'Academic Levels', value: summary?.academic_levels ?? 0, color: 'bg-purple-500' },
-                  { label: 'Students', value: summary?.students ?? 0, color: 'bg-amber-500' },
+                  { label: 'Faculties', value: summary?.faculties ?? 0, color: 'bg-primary-500', gradient: 'from-primary-50 to-primary-100/50' },
+                  { label: 'Departments', value: summary?.departments ?? 0, color: 'bg-accent-500', gradient: 'from-accent-50 to-accent-100/50' },
+                  { label: 'Academic Levels', value: summary?.academic_levels ?? 0, color: 'bg-purple-500', gradient: 'from-purple-50 to-purple-100/50' },
+                  { label: 'Students', value: summary?.students ?? 0, color: 'bg-amber-500', gradient: 'from-amber-50 to-amber-100/50' },
                 ].map(item => (
-                  <div key={item.label} className="flex items-center justify-between p-3 rounded-lg bg-surface-50">
-                    <span className="text-sm text-surface-600">{item.label}</span>
+                  <div key={item.label} className={`flex items-center justify-between p-3.5 rounded-xl bg-gradient-to-r ${item.gradient}`}>
+                    <span className="text-sm font-bold text-surface-600">{item.label}</span>
                     <div className="flex items-center gap-2.5">
                       <div className={`w-2 h-2 rounded-full ${item.color}`} />
-                      <span className="text-lg font-bold text-surface-800">{item.value}</span>
+                      <span className="text-xl font-extrabold text-surface-800">{item.value}</span>
                     </div>
                   </div>
                 ))}
@@ -151,23 +159,26 @@ export default function Dashboard() {
           <div className="grid gap-6 mb-6 lg:grid-cols-2">
             {activeSessions.length > 0 && (
               <Card className="p-0 overflow-hidden">
-                <div className="p-5 bg-gradient-to-r from-accent-50 to-accent-100/50 border-b border-accent-200/50">
+                <div className="p-5 bg-gradient-to-r from-emerald-50 to-emerald-100/50 border-b border-emerald-200/50">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold text-surface-800">Active Sessions Now</h3>
-                      <p className="text-xs text-surface-500 mt-0.5">{activeSessions.length} session{activeSessions.length > 1 ? 's' : ''} currently running</p>
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse-soft shadow-lg shadow-emerald-300" />
+                      <div>
+                        <h3 className="font-bold text-surface-800">Active Sessions Now</h3>
+                        <p className="text-xs font-medium text-surface-500 mt-0.5">{activeSessions.length} session{activeSessions.length > 1 ? 's' : ''} currently running</p>
+                      </div>
                     </div>
                     <Button variant="outline" size="sm" onClick={() => router.push('/sessions?status=active')}>View All</Button>
                   </div>
                 </div>
                 <div className="p-4 space-y-2 max-h-72 overflow-auto">
                   {activeSessions.slice(0, 5).map(s => (
-                    <div key={s.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-surface-50 transition-colors">
+                    <div key={s.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-surface-50 transition-colors">
                       <div className="flex items-center gap-3">
-                        <div className="w-2 h-2 rounded-full bg-accent-500 animate-pulse-soft" />
+                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse-soft" />
                         <div>
-                          <div className="font-medium text-sm text-surface-800">{s.course?.code || 'Unknown'} <span className="text-surface-400 text-xs">#{s.id}</span></div>
-                          <div className="text-xs text-surface-500">{s.course?.lecturer?.name || '—'} • {s.starts_at ? new Date(s.starts_at).toLocaleTimeString() : '—'}</div>
+                          <div className="font-bold text-sm text-surface-800">{s.course?.code || 'Unknown'} <span className="text-surface-400 font-medium text-xs">#{s.id}</span></div>
+                          <div className="text-xs font-medium text-surface-500">{s.course?.lecturer?.name || '—'} • {s.starts_at ? new Date(s.starts_at).toLocaleTimeString() : '—'}</div>
                         </div>
                       </div>
                       <Badge variant="success">{s.attendance_count ?? 0}/{s.expected_count ?? '?'}</Badge>
@@ -181,26 +192,31 @@ export default function Dashboard() {
               <Card className="p-0 overflow-hidden">
                 <div className="p-5 bg-gradient-to-r from-primary-50 to-primary-100/50 border-b border-primary-200/50">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold text-surface-800">Recent Users</h3>
-                      <p className="text-xs text-surface-500 mt-0.5">Latest registered users</p>
+                    <div className="flex items-center gap-3">
+                      <div className="icon-box w-10 h-10">
+                        <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-surface-800">Recent Users</h3>
+                        <p className="text-xs font-medium text-surface-500 mt-0.5">Latest registered users</p>
+                      </div>
                     </div>
                     <Button variant="outline" size="sm" onClick={() => router.push('/users')}>Manage</Button>
                   </div>
                 </div>
                 <div className="p-4 space-y-1 max-h-72 overflow-auto">
                   {recentUsers.map(u => (
-                    <div key={u.id} className="flex items-center justify-between p-2.5 rounded-lg hover:bg-surface-50 transition-colors">
+                    <div key={u.id} className="flex items-center justify-between p-2.5 rounded-xl hover:bg-surface-50 transition-colors">
                       <div className="flex items-center gap-3">
-                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold text-white ${u.role === 'lecturer' ? 'bg-accent-500' : 'bg-primary-500'}`}>
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-extrabold text-white ${u.role === 'lecturer' ? 'bg-gradient-to-br from-emerald-500 to-emerald-600' : 'bg-gradient-to-br from-primary-500 to-secondary-500'}`}>
                           {u.name?.charAt(0) || '?'}
                         </div>
                         <div>
-                          <div className="text-sm font-medium text-surface-800">{u.name}</div>
-                          <div className="text-xs text-surface-400">{u.email}</div>
+                          <div className="text-sm font-bold text-surface-800">{u.name}</div>
+                          <div className="text-xs font-medium text-surface-400">{u.email}</div>
                         </div>
                       </div>
-                      <Badge variant={u.role === 'lecturer' ? 'info' : 'default'}>{u.role}</Badge>
+                      <Badge variant={u.role === 'lecturer' ? 'success' : 'info'}>{u.role}</Badge>
                     </div>
                   ))}
                 </div>
@@ -213,22 +229,27 @@ export default function Dashboard() {
               <Card className="p-0 overflow-hidden">
                 <div className="p-5 border-b border-surface-200">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold text-surface-800">Recent Courses</h3>
-                      <p className="text-xs text-surface-400 mt-0.5">Latest created courses</p>
+                    <div className="flex items-center gap-3">
+                      <div className="icon-box w-10 h-10">
+                        <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-surface-800">Recent Courses</h3>
+                        <p className="text-xs font-medium text-surface-400 mt-0.5">Latest created courses</p>
+                      </div>
                     </div>
                     <Button variant="outline" size="sm" onClick={() => router.push('/courses')}>All Courses</Button>
                   </div>
                 </div>
-                <div className="p-0">
+                <div className="overflow-x-auto">
                   <Table>
                     <Thead><Tr><Th>Code</Th><Th>Title</Th><Th>Lecturer</Th><Th>Students</Th></Tr></Thead>
                     <Tbody>
                       {recentCourses.map(c => (
                         <Tr key={c.id}>
-                          <Td className="font-mono text-sm font-medium text-primary-600">{c.code}</Td>
-                          <Td className="text-sm text-surface-800">{c.title}</Td>
-                          <Td className="text-sm text-surface-600">{c.lecturer?.name || '—'}</Td>
+                          <Td className="font-mono text-sm font-bold text-primary-600">{c.code}</Td>
+                          <Td className="text-sm font-semibold text-surface-800">{c.title}</Td>
+                          <Td className="text-sm font-medium text-surface-500">{c.lecturer?.name || <span className="text-surface-300">—</span>}</Td>
                           <Td><Badge variant="info">{c.roster_count || 0}</Badge></Td>
                         </Tr>
                       ))}
@@ -239,23 +260,31 @@ export default function Dashboard() {
             )}
 
             <Card className="p-6">
-              <h3 className="font-semibold text-surface-800 mb-5">Academic Structure</h3>
+              <div className="flex items-center gap-3 mb-5">
+                <div className="icon-box w-10 h-10">
+                  <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                </div>
+                <div>
+                  <h3 className="font-bold text-surface-800">Academic Structure</h3>
+                  <p className="text-xs font-medium text-surface-400 mt-0.5">Institution breakdown</p>
+                </div>
+              </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl bg-gradient-to-br from-primary-50 to-primary-100/50 border border-primary-200/50">
-                  <div className="text-2xl font-bold text-primary-600">{summary?.faculties ?? 0}</div>
-                  <div className="text-sm text-primary-700 mt-1">Faculties</div>
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-primary-50 to-primary-100/50 border border-primary-200/50">
+                  <div className="text-2xl font-extrabold text-primary-600">{summary?.faculties ?? 0}</div>
+                  <div className="text-sm font-bold text-primary-700 mt-1">Faculties</div>
                 </div>
-                <div className="p-4 rounded-xl bg-gradient-to-br from-accent-50 to-accent-100/50 border border-accent-200/50">
-                  <div className="text-2xl font-bold text-accent-600">{summary?.departments ?? 0}</div>
-                  <div className="text-sm text-accent-700 mt-1">Departments</div>
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-accent-50 to-accent-100/50 border border-accent-200/50">
+                  <div className="text-2xl font-extrabold text-accent-600">{summary?.departments ?? 0}</div>
+                  <div className="text-sm font-bold text-accent-700 mt-1">Departments</div>
                 </div>
-                <div className="p-4 rounded-xl bg-gradient-to-br from-purple-50 to-purple-100/50 border border-purple-200/50">
-                  <div className="text-2xl font-bold text-purple-600">{summary?.academic_levels ?? 0}</div>
-                  <div className="text-sm text-purple-700 mt-1">Levels</div>
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-50 to-purple-100/50 border border-purple-200/50">
+                  <div className="text-2xl font-extrabold text-purple-600">{summary?.academic_levels ?? 0}</div>
+                  <div className="text-sm font-bold text-purple-700 mt-1">Levels</div>
                 </div>
-                <div className="p-4 rounded-xl bg-gradient-to-br from-amber-50 to-amber-100/50 border border-amber-200/50">
-                  <div className="text-2xl font-bold text-amber-600">{summary?.students ?? 0}</div>
-                  <div className="text-sm text-amber-700 mt-1">Students</div>
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-50 to-amber-100/50 border border-amber-200/50">
+                  <div className="text-2xl font-extrabold text-amber-600">{summary?.students ?? 0}</div>
+                  <div className="text-sm font-bold text-amber-700 mt-1">Students</div>
                 </div>
               </div>
             </Card>

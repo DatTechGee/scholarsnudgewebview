@@ -1,7 +1,7 @@
 import React from 'react'
 
-export default function Card({ children, className = '' }) {
+export default function Card({ children, className = '', glass = false }) {
   return (
-    <div className={`bg-white rounded-xl border border-surface-200/60 shadow-soft ${className}`}>{children}</div>
+    <div className={`${glass ? 'glass-card' : 'card-base'} ${className}`}>{children}</div>
   )
 }

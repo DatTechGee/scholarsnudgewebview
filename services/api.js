@@ -22,8 +22,10 @@ function authConfig(token, extra = {}) {
 }
 
 // ── Auth ──
-export async function login(email, password) {
-  const res = await client.post('/auth/login', { email, password })
+export async function login(credential, password) {
+  const payload = credential.includes('@') ? { email: credential } : { matric_number: credential }
+  payload.password = password
+  const res = await client.post('/auth/login', payload)
   return res.data
 }
 

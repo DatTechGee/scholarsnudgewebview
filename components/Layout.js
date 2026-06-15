@@ -16,13 +16,13 @@ export default function Layout({ children }) {
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gradient-to-br from-surface-50 via-white to-primary-50">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-white font-bold text-lg shadow-xl shadow-primary-200 animate-pulse-soft">SN</div>
-          <div className="flex gap-1">
-            <div className="w-2 h-2 rounded-full bg-primary-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-            <div className="w-2 h-2 rounded-full bg-primary-500 animate-bounce" style={{ animationDelay: '150ms' }} />
-            <div className="w-2 h-2 rounded-full bg-primary-600 animate-bounce" style={{ animationDelay: '300ms' }} />
+      <div className="h-screen flex items-center justify-center bg-[#f3f6fb]">
+        <div className="flex flex-col items-center gap-5">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white font-extrabold text-xl shadow-glow-lg animate-pulse-soft">SN</div>
+          <div className="flex gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-primary-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+            <div className="w-2.5 h-2.5 rounded-full bg-secondary-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+            <div className="w-2.5 h-2.5 rounded-full bg-primary-500 animate-bounce" style={{ animationDelay: '300ms' }} />
           </div>
         </div>
       </div>
@@ -34,16 +34,16 @@ export default function Layout({ children }) {
   const isPublicPage = ['/login', '/register'].includes(router.pathname)
 
   if (isPublicPage) {
-    return <div className="min-h-screen">{children}</div>
+    return <div className="min-h-screen bg-[#f3f6fb]">{children}</div>
   }
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen bg-[#f3f6fb]">
       <Sidebar user={user} onLogout={logout} />
-      <div className="flex-1 flex flex-col overflow-hidden bg-[#f0f2f5]">
+      <div className="flex-1 flex flex-col overflow-hidden">
         <Header user={user} />
-        <main className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-7xl mx-auto animate-fade-in">
+        <main className="flex-1 overflow-y-auto p-6 lg:p-8">
+          <div className="max-w-7xl mx-auto animate-slide-up">
             {children}
           </div>
         </main>

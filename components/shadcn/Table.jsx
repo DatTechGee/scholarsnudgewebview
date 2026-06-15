@@ -1,11 +1,11 @@
 import React from 'react'
 
 export function Table({ children }) {
-  return <div className="overflow-x-auto rounded-lg border border-surface-200/60"><table className="min-w-full">{children}</table></div>
+  return <div className="overflow-x-auto"><table className="min-w-full">{children}</table></div>
 }
 
 export function Thead({ children }) {
-  return <thead className="bg-surface-50 text-left text-xs font-semibold text-surface-500 uppercase tracking-wider">{children}</thead>
+  return <thead className="bg-surface-50 text-left text-xs font-bold text-surface-500 uppercase tracking-wider">{children}</thead>
 }
 
 export function Th({ children, className = '' }) {
@@ -17,7 +17,7 @@ export function Tbody({ children }) {
 }
 
 export function Tr({ children, className = '' }) {
-  return <tr className={`hover:bg-surface-50 transition-colors ${className}`}>{children}</tr>
+  return <tr className={`hover:bg-surface-50/80 transition-colors ${className}`}>{children}</tr>
 }
 
 export function Td({ children, className = '' }) {
