@@ -1,5 +1,6 @@
 DirectorySlash Off
 RewriteEngine On
+Options -MultiViews
 
 # Serve index.html for requests to the root (/school)
 RewriteRule ^$ index.html [L]
@@ -7,12 +8,17 @@ RewriteRule ^$ index.html [L]
 # Remove trailing slash from directories (e.g., /school/lecturer/ -> /school/lecturer)
 RewriteRule ^(.+)/$ $1 [L,R=301]
 
-# Rewrite clean URLs to .html files
+# Try serving .html file for any path (handles /lecturer -> lecturer.html, /student -> student.html)
 RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_FILENAME}.html -f
 RewriteRule ^(.+)$ $1.html [L]
 
-# Serve index.html for directory requests (e.g., /school/lecturer -> /school/lecturer/index.html)
+# If .html doesn't exist, try serving index.html (handles /lecturer/manage/123 -> lecturer/manage/123/index.html)
+RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^(.+)$ $1/index.html [L]
+
+# Fallback: serve 404.html for anything that doesn't match
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . 404.html [L]

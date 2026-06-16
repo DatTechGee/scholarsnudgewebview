@@ -5,21 +5,21 @@ export function Table({ children }) {
 }
 
 export function Thead({ children }) {
-  return <thead className="bg-surface-50 text-left text-xs font-bold text-surface-500 uppercase tracking-wider">{children}</thead>
+  return <thead className="bg-gradient-to-r from-surface-50 to-surface-100/50 text-left text-[11px] font-bold text-surface-500 uppercase tracking-wider">{children}</thead>
 }
 
 export function Th({ children, className = '' }) {
-  return <th className={`px-4 py-3.5 ${className}`}>{children}</th>
+  return <th className={`px-5 py-4 ${className}`}>{children}</th>
 }
 
 export function Tbody({ children }) {
-  return <tbody className="divide-y divide-surface-100">{children}</tbody>
+  return <tbody className="divide-y divide-surface-100/80">{children}</tbody>
 }
 
 export function Tr({ children, className = '' }) {
-  return <tr className={`hover:bg-surface-50/80 transition-colors ${className}`}>{children}</tr>
+  return <tr className={`transition-all duration-150 hover:bg-primary-50/40 hover:shadow-sm ${className}`}>{children}</tr>
 }
 
 export function Td({ children, className = '' }) {
-  return <td className={`px-4 py-3.5 text-sm ${className}`}>{children}</td>
+  return <td className={`px-5 py-4 text-sm ${className}`}>{children}</td>
 }

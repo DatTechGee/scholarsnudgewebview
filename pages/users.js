@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import Layout from '../components/Layout'
 import Button from '../components/shadcn/Button'
+import Card from '../components/shadcn/Card'
+import { Table, Thead, Th, Tbody, Tr, Td } from '../components/shadcn/Table'
 import {
   createUser,
   deleteUser,
@@ -330,58 +332,56 @@ export default function Users() {
         </div>
       ) : null}
 
-      <div className="mt-6 rounded border bg-white">
-        <div className="flex items-center justify-between border-b px-4 py-3 text-sm text-slate-600">
+      <Card className="p-0 mt-6 overflow-hidden">
+        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3 text-sm text-slate-500">
           <div>Total users: {meta.total}</div>
           <div>Page {meta.current_page} of {meta.last_page}</div>
         </div>
 
-        {loading ? <div className="p-4">Loading users...</div> : null}
-        {!loading && users.length === 0 ? <div className="p-4">No users found.</div> : null}
+        {loading ? <div className="p-8 text-center text-slate-400">Loading users...</div> : null}
+        {!loading && users.length === 0 ? <div className="p-8 text-center text-slate-400">No users found.</div> : null}
 
         {!loading && users.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full">
-              <thead className="bg-slate-50 text-left text-sm">
-                <tr>
-                  <th className="px-4 py-3">Name</th>
-                  <th className="px-4 py-3">Email</th>
-                  <th className="px-4 py-3">Role</th>
-                  <th className="px-4 py-3">ID</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((user) => (
-                  <tr key={user.id} className="border-t">
-                    <td className="px-4 py-3">{user.name}</td>
-                    <td className="px-4 py-3">{user.email}</td>
-                    <td className="px-4 py-3 capitalize">{user.role}</td>
-                    <td className="px-4 py-3">{user.matric_number || user.staff_id || '-'}</td>
-                    <td className="px-4 py-3">{user.is_verified ? 'Verified' : 'Pending'}</td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button variant="ghost" onClick={() => openEditForm(user)}>Edit</Button>
-                        <Button variant="destructive" onClick={() => handleDelete(user)}>Delete</Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table>
+            <Thead>
+              <Tr>
+                <Th>Name</Th>
+                <Th>Email</Th>
+                <Th>Role</Th>
+                <Th>ID</Th>
+                <Th>Status</Th>
+                <Th></Th>
+              </Tr>
+            </Thead>
+            <Tbody>
+              {users.map((user) => (
+                <Tr key={user.id}>
+                  <Td className="font-medium">{user.name}</Td>
+                  <Td className="text-sm text-slate-500">{user.email}</Td>
+                  <Td className="capitalize">{user.role}</Td>
+                  <Td className="text-sm text-slate-500">{user.matric_number || user.staff_id || '-'}</Td>
+                  <Td><span className={`inline-flex items-center gap-1.5 text-xs font-medium ${user.is_verified ? 'text-emerald-600' : 'text-amber-500'}`}><span className={`w-1.5 h-1.5 rounded-full ${user.is_verified ? 'bg-emerald-500' : 'bg-amber-400'}`} />{user.is_verified ? 'Verified' : 'Pending'}</span></Td>
+                  <Td className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" size="sm" onClick={() => openEditForm(user)}>Edit</Button>
+                      <Button variant="destructive" size="sm" onClick={() => handleDelete(user)}>Delete</Button>
+                    </div>
+                  </Td>
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
         ) : null}
 
-        <div className="flex items-center justify-end gap-2 border-t px-4 py-3">
-          <Button variant="ghost" disabled={meta.current_page <= 1 || loading} onClick={() => loadUsers(meta.current_page - 1)}>
+        <div className="flex items-center justify-end gap-2 border-t border-slate-100 px-5 py-3">
+          <Button variant="outline" size="sm" disabled={meta.current_page <= 1 || loading} onClick={() => loadUsers(meta.current_page - 1)}>
             Previous
           </Button>
-          <Button variant="ghost" disabled={meta.current_page >= meta.last_page || loading} onClick={() => loadUsers(meta.current_page + 1)}>
+          <Button variant="outline" size="sm" disabled={meta.current_page >= meta.last_page || loading} onClick={() => loadUsers(meta.current_page + 1)}>
             Next
           </Button>
         </div>
-      </div>
+      </Card>
     </Layout>
   )
 }

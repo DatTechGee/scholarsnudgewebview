@@ -71,14 +71,6 @@ export default function Register() {
     stopCamera()
   }, [stopCamera, videoReady])
 
-  const handleFileSelect = (e) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setFaceImage(file)
-      setFacePreview(URL.createObjectURL(file))
-    }
-  }
-
   const removeFace = () => {
     if (facePreview) URL.revokeObjectURL(facePreview)
     setFaceImage(null)
@@ -217,51 +209,44 @@ export default function Register() {
             </div>
           )}
 
-          <div className="border-t border-surface-200 pt-4">
-            <label className="block text-sm font-bold text-surface-700 mb-3">Face Registration {role === 'student' ? <span className="text-xs font-bold text-red-500">(required)</span> : <span className="text-xs font-medium text-surface-400">(optional)</span>}</label>
+          {role === 'student' && (
+            <div className="border-t border-surface-200 pt-4">
+              <label className="block text-sm font-bold text-surface-700 mb-3">Face Registration <span className="text-xs font-bold text-red-500">(required)</span></label>
 
-            {facePreview ? (
-              <div className="relative rounded-2xl overflow-hidden border-2 border-surface-200">
-                <img src={facePreview} alt="Captured face" className="w-full h-48 object-cover" />
-                <button type="button" onClick={removeFace}
-                  className="absolute top-3 right-3 bg-red-500 text-white rounded-xl w-8 h-8 flex items-center justify-center text-sm hover:bg-red-600 shadow-lg transition-all"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-              </div>
-            ) : showCamera ? (
-              <div className="relative rounded-2xl overflow-hidden border-2 border-primary-300 bg-black">
-                <video ref={videoRef} autoPlay playsInline muted onCanPlay={() => setVideoReady(true)} className="w-full h-48 object-cover" />
-                <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-3">
-                  <button type="button" onClick={captureFrame} disabled={!videoReady}
-                    className={`px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg transition-all ${videoReady ? 'bg-white text-surface-800 hover:bg-surface-100 active:scale-95' : 'bg-surface-500/50 text-surface-300 cursor-not-allowed'}`}
-                  >{videoReady ? 'Capture' : 'Loading...'}</button>
-                  <button type="button" onClick={stopCamera}
-                    className="px-6 py-2.5 rounded-xl text-sm font-bold bg-surface-800/60 text-white hover:bg-surface-800 active:scale-95"
-                  >Cancel</button>
+              {facePreview ? (
+                <div className="relative rounded-2xl overflow-hidden border-2 border-surface-200">
+                  <img src={facePreview} alt="Captured face" className="w-full h-48 object-cover" />
+                  <button type="button" onClick={removeFace}
+                    className="absolute top-3 right-3 bg-red-500 text-white rounded-xl w-8 h-8 flex items-center justify-center text-sm hover:bg-red-600 shadow-lg transition-all"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
                 </div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-3">
+              ) : showCamera ? (
+                <div className="relative rounded-2xl overflow-hidden border-2 border-primary-300 bg-black">
+                  <video ref={videoRef} autoPlay playsInline muted onCanPlay={() => setVideoReady(true)} className="w-full h-48 object-cover" />
+                  <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-3">
+                    <button type="button" onClick={captureFrame} disabled={!videoReady}
+                      className={`px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg transition-all ${videoReady ? 'bg-white text-surface-800 hover:bg-surface-100 active:scale-95' : 'bg-surface-500/50 text-surface-300 cursor-not-allowed'}`}
+                    >{videoReady ? 'Capture' : 'Loading...'}</button>
+                    <button type="button" onClick={stopCamera}
+                      className="px-6 py-2.5 rounded-xl text-sm font-bold bg-surface-800/60 text-white hover:bg-surface-800 active:scale-95"
+                    >Cancel</button>
+                  </div>
+                </div>
+              ) : (
                 <button type="button" onClick={startCamera}
-                  className="flex flex-col items-center gap-2 border-2 border-dashed border-surface-300 rounded-2xl py-8 text-surface-500 hover:border-primary-400 hover:text-primary-600 hover:bg-primary-50/50 transition-all active:scale-[0.98]"
+                  className="w-full flex flex-col items-center gap-2 border-2 border-dashed border-surface-300 rounded-2xl py-8 text-surface-500 hover:border-primary-400 hover:text-primary-600 hover:bg-primary-50/50 transition-all active:scale-[0.98]"
                 >
                   <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
                     <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
                   </svg>
-                  <span className="text-sm font-bold">Open Camera</span>
+                  <span className="text-sm font-bold">Open Camera to Capture Face</span>
                 </button>
-                <label className="flex flex-col items-center gap-2 border-2 border-dashed border-surface-300 rounded-2xl py-8 text-surface-500 hover:border-accent-400 hover:text-accent-600 hover:bg-accent-50/50 transition-all active:scale-[0.98] cursor-pointer">
-                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-                  </svg>
-                  <span className="text-sm font-bold">Upload Photo</span>
-                  <input type="file" accept="image/*" capture="user" onChange={handleFileSelect} className="hidden" />
-                </label>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
           <canvas ref={canvasRef} className="hidden" />
 

@@ -375,6 +375,39 @@ export async function getSharedCourses(token) {
   return res.data
 }
 
+// ── Face Registration Endpoints ──
+export async function registerFace(imageBlob, token) {
+  const fd = new FormData()
+  fd.append('face', imageBlob, 'face.jpg')
+  const res = await client.post('/face/register', fd, authConfig(token, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }))
+  return res.data
+}
+
+export async function getFaceStatus(token) {
+  const res = await client.get('/face/status', authConfig(token))
+  return res.data
+}
+
+export async function studentRegisterFace(imageBlob, token) {
+  const fd = new FormData()
+  fd.append('face', imageBlob, 'face.jpg')
+  const res = await client.post('/student/face/register', fd, authConfig(token, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }))
+  return res.data
+}
+
+export async function studentVerifyFace(imageBlob, token) {
+  const fd = new FormData()
+  fd.append('face', imageBlob, 'face.jpg')
+  const res = await client.post('/student/face/verify', fd, authConfig(token, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }))
+  return res.data
+}
+
 // ── Student Endpoints ──
 export async function getStudentActiveSessions(token) {
   const res = await client.get('/student/sessions/active', authConfig(token))

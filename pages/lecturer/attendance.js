@@ -5,7 +5,7 @@ import Card from '../../components/shadcn/Card'
 import Badge from '../../components/shadcn/Badge'
 import Button from '../../components/shadcn/Button'
 import { Table, Thead, Th, Tbody, Tr, Td } from '../../components/shadcn/Table'
-import { getLecturerCourses, getCourseAttendance, getCourseAnalytics } from '../../services/api'
+import { getLecturerCourses, getCourseAttendance, getCourseAnalytics, updateAttendanceStatus, deleteAttendance } from '../../services/api'
 
 function AnalyticsCard({ label, value, sub, color, icon }) {
   return (
@@ -27,6 +27,7 @@ export default function LecturerAttendance() {
   const [analytics, setAnalytics] = useState(null)
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('')
+  const [busyId, setBusyId] = useState(null)
 
   useEffect(() => {
     const t = window.localStorage.getItem('admin_token') || ''
@@ -68,6 +69,27 @@ export default function LecturerAttendance() {
       a.student_name?.toLowerCase().includes(filter.toLowerCase())
     )
   }, [attendance, filter])
+
+  const handleStatusChange = async (attendanceId, newStatus) => {
+    setBusyId(attendanceId)
+    try {
+      await updateAttendanceStatus(attendanceId, newStatus, token)
+      if (selectedCourse) loadAttendance(selectedCourse)
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Failed to update status.')
+    } finally { setBusyId(null) }
+  }
+
+  const handleDeleteAttendance = async (attendanceId) => {
+    if (!window.confirm('Delete this attendance record?')) return
+    setBusyId(attendanceId)
+    try {
+      await deleteAttendance(attendanceId, token)
+      if (selectedCourse) loadAttendance(selectedCourse)
+    } catch (_) {
+      setError('Failed to delete record.')
+    } finally { setBusyId(null) }
+  }
 
   const downloadCSV = useCallback(() => {
     if (!filtered.length) return
@@ -154,6 +176,7 @@ export default function LecturerAttendance() {
                     <Th>Time</Th>
                     <Th>Distance</Th>
                     <Th>Late</Th>
+                    <Th></Th>
                   </Tr>
                 </Thead>
                 <Tbody>
@@ -171,6 +194,29 @@ export default function LecturerAttendance() {
                       <Td className="text-sm text-slate-500">{a.checked_in_at ? new Date(a.checked_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</Td>
                       <Td className="text-sm text-slate-500">{a.distance_at_checkin ? `${Math.round(a.distance_at_checkin)}m` : '—'}</Td>
                       <Td>{a.is_late ? <Badge variant="warning">Late</Badge> : '—'}</Td>
+                      <Td>
+                        <div className="flex gap-1">
+                          {a.status !== 'present' && a.status !== 'verified' ? (
+                            <button onClick={() => handleStatusChange(a.id, 'present')} disabled={busyId === a.id}
+                              className="px-2 py-1 text-xs font-medium text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors"
+                            title="Mark Present">
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                            </button>
+                          ) : null}
+                          {a.status !== 'invalid' ? (
+                            <button onClick={() => handleStatusChange(a.id, 'invalid')} disabled={busyId === a.id}
+                              className="px-2 py-1 text-xs font-medium text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                            title="Mark Invalid">
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                          ) : null}
+                          <button onClick={() => handleDeleteAttendance(a.id)} disabled={busyId === a.id}
+                            className="px-2 py-1 text-xs font-medium text-red-400 hover:bg-red-50 rounded-md transition-colors"
+                          title="Delete">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                          </button>
+                        </div>
+                      </Td>
                     </Tr>
                   ))}
                 </Tbody>

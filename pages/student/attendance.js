@@ -25,7 +25,7 @@ export default function StudentAttendance() {
   const [dateTo, setDateTo] = useState('')
 
   const getToken = useCallback(() => {
-    const t = typeof window !== 'undefined' ? (window.localStorage.getItem('student_token') || window.localStorage.getItem('admin_token') || '') : ''
+    const t = typeof window !== 'undefined' ? window.localStorage.getItem('admin_token') || '' : ''
     setToken(t)
     return t
   }, [])

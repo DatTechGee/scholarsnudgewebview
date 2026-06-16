@@ -7,7 +7,7 @@ import Button from '../../components/shadcn/Button'
 import Input from '../../components/shadcn/Input'
 import Modal from '../../components/shadcn/Modal'
 import { Table, Thead, Th, Tbody, Tr, Td } from '../../components/shadcn/Table'
-import { getLecturerCourses, getCourseShares, shareCourse, removeCourseShare, getSharedCourses } from '../../services/api'
+import { getLecturerCourses, getCourseShares, shareCourse, removeCourseShare, getSharedCourses, getLecturerSwapRequestsReceived, respondLecturerSwapRequest } from '../../services/api'
 
 export default function LecturerShares() {
   const router = useRouter()
@@ -22,6 +22,8 @@ export default function LecturerShares() {
   const [lecturerEmail, setLecturerEmail] = useState('')
   const [busy, setBusy] = useState(false)
   const [tab, setTab] = useState('my')
+  const [swapRequests, setSwapRequests] = useState([])
+  const [swapLoading, setSwapLoading] = useState(false)
 
   useEffect(() => {
     const t = window.localStorage.getItem('admin_token') || ''
@@ -58,6 +60,29 @@ export default function LecturerShares() {
     } finally { setBusy(false) }
   }
 
+  const loadSwapRequests = useCallback(async () => {
+    if (!token) return
+    setSwapLoading(true)
+    try {
+      const data = await getLecturerSwapRequestsReceived(token)
+      setSwapRequests(Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [])
+    } catch (_) { setSwapRequests([]) }
+    finally { setSwapLoading(false) }
+  }, [token])
+
+  useEffect(() => {
+    if (tab === 'swaps') loadSwapRequests()
+  }, [tab, loadSwapRequests])
+
+  const handleRespondSwap = async (swapId, status) => {
+    try {
+      await respondLecturerSwapRequest(swapId, { status }, token)
+      await loadSwapRequests()
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Failed to respond.')
+    }
+  }
+
   const handleRemoveShare = async (shareId) => {
     if (!window.confirm('Remove this shared access?')) return
     try {
@@ -79,15 +104,55 @@ export default function LecturerShares() {
 
       {error ? <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700 text-sm">{error}</div> : null}
 
-      <div className="flex gap-2 mb-6">
-        {['my', 'shared'].map(t => (
+      <div className="flex gap-2 mb-6 flex-wrap">
+        {['my', 'shared', 'swaps'].map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === t ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-white border text-slate-600 hover:bg-slate-50'}`}
-          >{t === 'my' ? 'My Shares' : 'Shared With Me'}{t === 'shared' && sharedCourses.length > 0 ? ` (${sharedCourses.length})` : ''}</button>
+          >{t === 'my' ? 'My Shares' : t === 'shared' ? 'Shared With Me' : 'Swap Requests'}{t === 'shared' && sharedCourses.length > 0 ? ` (${sharedCourses.length})` : ''}{t === 'swaps' && swapRequests.length > 0 ? ` (${swapRequests.length})` : ''}</button>
         ))}
       </div>
 
-      {tab === 'shared' ? (
+      {tab === 'swaps' ? (
+        <div>
+          <h3 className="font-semibold text-slate-700 mb-4">Swap Requests Received</h3>
+          {swapLoading ? (
+            <div className="text-center py-8 text-slate-400">Loading...</div>
+          ) : swapRequests.length === 0 ? (
+            <Card className="p-8 text-center text-slate-400">No swap requests received.</Card>
+          ) : (
+            <div className="grid gap-4">
+              {swapRequests.map(sr => (
+                <Card key={sr.id} className="p-4 border-l-4 border-l-amber-400">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="font-medium text-slate-800">{sr.course?.code || sr.course_name || '—'} &rarr; {sr.requested_course?.code || sr.requested_course_name || '—'}</div>
+                      <div className="text-sm text-slate-500 mt-1">From: {sr.requester?.name || '—'} ({sr.requester?.email || '—'})</div>
+                      {sr.notes && <div className="text-sm text-slate-500 mt-1 italic">"{sr.notes}"</div>}
+                      <div className="text-xs text-slate-400 mt-1">{sr.created_at ? new Date(sr.created_at).toLocaleDateString() : '—'}</div>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      {sr.status === 'pending' ? (
+                        <>
+                          <Button onClick={() => handleRespondSwap(sr.id, 'approved')} size="sm">
+                            Accept
+                          </Button>
+                          <Button onClick={() => handleRespondSwap(sr.id, 'rejected')} variant="destructive" size="sm">
+                            Reject
+                          </Button>
+                        </>
+                      ) : (
+                        <Badge variant={sr.status === 'approved' ? 'success' : sr.status === 'rejected' ? 'danger' : 'warning'}>
+                          {sr.status}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : tab === 'shared' ? (
         <div>
           <h3 className="font-semibold text-slate-700 mb-4">Courses Shared With You</h3>
           {sharedCourses.length === 0 ? (

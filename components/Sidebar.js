@@ -45,17 +45,17 @@ export default function Sidebar({ user, onLogout }) {
       'bg-surface-900 text-white flex flex-col h-full transition-all duration-300 ease-in-out shadow-nav shrink-0',
       collapsed ? 'w-[72px]' : 'w-64'
     )}>
-      <div className={clsx('h-16 flex items-center border-b border-surface-700/30', collapsed ? 'justify-center' : 'justify-between px-4')}>
+      <div className={clsx('h-16 flex items-center border-b border-surface-700/40', collapsed ? 'justify-center' : 'justify-between px-4')}>
         {!collapsed && (
-          <Link href={isAdmin ? '/' : role === 'lecturer' ? '/lecturer' : '/student'} className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white font-extrabold text-sm shadow-glow">SN</div>
+          <Link href={isAdmin ? '/' : role === 'lecturer' ? '/lecturer' : '/student'} className="flex items-center gap-3 group">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-400 to-secondary-500 flex items-center justify-center text-white font-extrabold text-sm shadow-glow-lg group-hover:scale-105 transition-transform">SN</div>
             <div>
               <div className="text-sm font-bold text-white leading-tight">ScholarsNudge</div>
-              <div className="text-[10px] font-bold text-primary-300 uppercase tracking-wider">{isAdmin ? 'Admin' : role === 'lecturer' ? 'Lecturer' : 'Student'}</div>
+              <div className="text-[10px] font-bold text-primary-300/80 uppercase tracking-wider">{isAdmin ? 'Admin' : role === 'lecturer' ? 'Lecturer' : 'Student'}</div>
             </div>
           </Link>
         )}
-        <button onClick={() => setCollapsed(!collapsed)} className={clsx('p-1.5 rounded-xl hover:bg-surface-700 text-surface-400 hover:text-white transition-colors', collapsed && 'mx-auto')}>
+        <button onClick={() => setCollapsed(!collapsed)} className={clsx('p-1.5 rounded-xl hover:bg-surface-700/60 text-surface-400 hover:text-white transition-all', collapsed && 'mx-auto')}>
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={collapsed ? 'M13 5l7 7-7 7M5 5l7 7-7 7' : 'M11 19l-7-7 7-7m8 14l-7-7 7-7'} />
           </svg>
@@ -70,8 +70,8 @@ export default function Sidebar({ user, onLogout }) {
               key={item.href}
               href={item.href}
               className={clsx(
-                'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150',
-                active ? 'bg-primary-500/15 text-primary-300' : 'text-surface-300 hover:bg-surface-800 hover:text-white',
+                'sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150',
+                active ? 'bg-gradient-to-r from-primary-500/20 to-primary-500/10 text-primary-200 shadow-sm' : 'text-surface-300 hover:bg-surface-800/60 hover:text-white',
                 collapsed && 'justify-center px-2'
               )}
               title={collapsed ? item.label : undefined}
@@ -80,16 +80,16 @@ export default function Sidebar({ user, onLogout }) {
                 <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
               </svg>
               {!collapsed && <span>{item.label}</span>}
-              {active && !collapsed && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-400" />}
+              {active && !collapsed && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-400 shadow-sm shadow-primary-400/50" />}
             </Link>
           )
         })}
       </nav>
 
-      <div className="p-3 border-t border-surface-700/30">
+      <div className="p-3 border-t border-surface-700/40">
         {user ? (
           <div className={clsx(collapsed ? 'flex flex-col items-center gap-2' : 'flex items-center gap-3')}>
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white font-extrabold text-sm shrink-0 shadow-glow">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-400 to-secondary-500 flex items-center justify-center text-white font-extrabold text-sm shrink-0 shadow-glow ring-2 ring-surface-700">
               {user.name?.charAt(0)?.toUpperCase() || 'U'}
             </div>
             {!collapsed && (
@@ -100,7 +100,7 @@ export default function Sidebar({ user, onLogout }) {
             )}
             <button
               onClick={onLogout}
-              className={clsx('p-1.5 rounded-xl text-surface-400 hover:text-red-400 hover:bg-surface-800 transition-colors', collapsed && 'mt-1')}
+              className={clsx('p-1.5 rounded-xl text-surface-400 hover:text-red-400 hover:bg-red-500/10 transition-all', collapsed && 'mt-1')}
               title="Logout"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>

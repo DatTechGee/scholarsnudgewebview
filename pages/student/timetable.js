@@ -28,11 +28,13 @@ export default function StudentTimetable() {
     } else { setLoading(false) }
   }, [])
 
+  const dayIndex = { Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5 }
   const grouped = {}
   dayNames.forEach(day => { grouped[day] = [] })
   timetable.forEach(s => {
-    const day = s.day_of_week || s.day
-    if (grouped[day]) grouped[day].push(s)
+    const d = s.day_of_week != null ? s.day_of_week : s.day
+    const name = typeof d === 'number' ? ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d] || '' : d
+    if (grouped[name] != null) grouped[name].push(s)
   })
   dayNames.forEach(day => {
     grouped[day].sort((a, b) => (a.start_time || a.time)?.localeCompare(b.start_time || b.time))

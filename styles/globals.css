@@ -5,35 +5,40 @@
 html, body, #__next { height: 100%; }
 
 body {
-  @apply bg-[#f3f6fb] text-surface-800 antialiased;
+  @apply bg-[#f0f4f9] text-surface-800 antialiased;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
 }
 
-* { @apply transition-colors duration-150; }
+::selection { @apply bg-primary-500/20 text-primary-800; }
 
-::-webkit-scrollbar { width: 4px; height: 4px; }
+/* ── Smooth transitions ── */
+* { @apply transition-colors duration-150; }
+a, button { @apply transition-all duration-150; }
+
+/* ── Custom scrollbar ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { @apply bg-surface-300 rounded-full; }
-::-webkit-scrollbar-thumb:hover { @apply bg-surface-400; }
+::-webkit-scrollbar-thumb { @apply bg-surface-300/70 rounded-full hover:bg-surface-400; }
 
 /* ── Card base ── */
 .card-base {
-  @apply bg-white rounded-2xl border border-surface-200/60 shadow-soft;
+  @apply bg-white/90 backdrop-blur-sm rounded-2xl border border-surface-200/60 shadow-soft;
 }
 
-/* ── Stat card with app-style hover ── */
+/* ── Stat card ── */
 .stat-card {
-  @apply card-base p-5 transition-all duration-200;
+  @apply card-base p-5 transition-all duration-200 cursor-default;
 }
 .stat-card:hover {
-  @apply shadow-card -translate-y-0.5;
+  @apply shadow-card -translate-y-0.5 bg-white;
 }
 
 /* ── Glass card ── */
 .glass-card {
-  background: rgba(255,255,255,0.88);
-  backdrop-filter: blur(12px);
-  @apply rounded-2xl border border-white/30 shadow-card;
+  background: rgba(255,255,255,0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  @apply rounded-2xl border border-white/40 shadow-card;
 }
 
 /* ── Gradient icon container ── */
@@ -54,11 +59,10 @@ body {
 
 /* ── Skeleton shimmer ── */
 .skeleton {
-  background: linear-gradient(90deg, #e8edf5 25%, #d7e3f6 50%, #e8edf5 75%);
+  background: linear-gradient(90deg, #eef2f6 25%, #dce3ed 50%, #eef2f6 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
 }
-@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 
 /* ── Gradient text ── */
 .text-gradient {
@@ -71,4 +75,73 @@ body {
 /* ── Notification alert boxes ── */
 .alert-box {
   @apply flex items-start gap-3 px-4 py-3.5 rounded-xl text-sm font-medium border;
+}
+
+/* ── Shimmer border animation ── */
+.shimmer-border {
+  position: relative;
+  overflow: hidden;
+}
+.shimmer-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: linear-gradient(135deg, #2f6df6, #06b6d4, #2f6df6);
+  background-size: 200% 200%;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+/* ── Table row hover ── */
+.table-row-hover tbody tr {
+  @apply transition-all duration-150;
+}
+.table-row-hover tbody tr:hover {
+  @apply bg-primary-50/40;
+}
+
+/* ── Sidebar transitions ── */
+.sidebar-item {
+  @apply relative overflow-hidden;
+}
+.sidebar-item::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.4s;
+}
+.sidebar-item:hover::after {
+  transform: translateX(100%);
+}
+
+/* ── Card with colored top border ── */
+.card-accent-top {
+  @apply border-t-4 border-t-primary-500;
+}
+
+/* ── Status dot ── */
+.status-dot {
+  @apply w-2 h-2 rounded-full inline-block;
+}
+.status-dot.active { @apply bg-emerald-500 shadow-lg shadow-emerald-300/50 animate-pulse-soft; }
+.status-dot.inactive { @apply bg-surface-300; }
+
+/* ── Hover scale effect for clickable cards ── */
+.hover-lift {
+  @apply transition-all duration-200;
+}
+.hover-lift:hover {
+  @apply -translate-y-1 shadow-card-hover;
+}
+
+/* ── Background pattern ── */
+.bg-dots {
+  background-image: radial-gradient(circle, rgba(47,109,246,0.06) 1px, transparent 1px);
+  background-size: 20px 20px;
 }

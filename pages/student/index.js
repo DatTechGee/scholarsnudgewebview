@@ -31,7 +31,7 @@ export default function StudentDashboard() {
   const [error, setError] = useState('')
 
   const getToken = useCallback(() => {
-    const t = typeof window !== 'undefined' ? (window.localStorage.getItem('student_token') || window.localStorage.getItem('admin_token') || '') : ''
+    const t = typeof window !== 'undefined' ? window.localStorage.getItem('admin_token') || '' : ''
     setToken(t)
     return t
   }, [])
@@ -222,7 +222,7 @@ export default function StudentDashboard() {
                           {slot.course?.code || slot.course_code || slot.course || 'Unknown'}
                         </div>
                         <div className="text-xs text-slate-400">
-                          {slot.day || slot.day_of_week || '—'} {slot.start_time || slot.time ? `at ${slot.start_time || slot.time}` : ''}
+                          {(slot.day != null ? slot.day : (slot.day_of_week != null ? ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][slot.day_of_week] || slot.day_of_week : '—'))} {slot.start_time || slot.time ? `at ${slot.start_time || slot.time}` : ''}
                         </div>
                       </div>
                       {slot.venue ? (
