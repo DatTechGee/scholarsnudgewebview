@@ -10,6 +10,7 @@ import { Table, Thead, Th, Tbody, Tr, Td } from '../../components/shadcn/Table'
 import { getLecturerCourses, getTimetableSlots, createTimetableSlot, deleteTimetableSlot } from '../../services/api'
 
 const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+const dayMap = { Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 }
 
 export default function LecturerTimetable() {
   const router = useRouter()
@@ -51,10 +52,10 @@ export default function LecturerTimetable() {
     setError('')
     try {
       await createTimetableSlot(selectedCourse, {
-        day_of_week: form.day_of_week,
+        day_of_week: dayMap[form.day_of_week] ?? 1,
         start_time: form.start_time,
         end_time: form.end_time,
-        room: form.room || null,
+        venue: form.room || null,
       }, token)
       setShowForm(false)
       setForm({ day_of_week: 'Monday', start_time: '08:00', end_time: '09:00', room: '' })
@@ -76,10 +77,12 @@ export default function LecturerTimetable() {
     return <Layout><Card className="p-8 text-center"><p className="text-slate-500 mb-4">Please sign in first.</p><Button onClick={() => router.push('/login')}>Sign In</Button></Card></Layout>
   }
 
+  const dayLabel = (d) => d === undefined || d === null ? '' : (['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d] || String(d))
   const groupedSlots = {}
   dayNames.forEach(day => { groupedSlots[day] = [] })
   slots.forEach(s => {
-    if (groupedSlots[s.day_of_week]) groupedSlots[s.day_of_week].push(s)
+    const label = dayLabel(s.day_of_week)
+    if (groupedSlots[label]) groupedSlots[label].push(s)
   })
 
   return (

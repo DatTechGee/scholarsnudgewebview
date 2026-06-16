@@ -32,9 +32,9 @@ export default function Login() {
       window.localStorage.setItem('user_name', me.name || 'User')
       window.localStorage.setItem('user_data', JSON.stringify(me))
 
-      if (role === 'admin' || role === 'super_admin') { router.push('/'); setTimeout(() => { window.location.href = '/school/'; }, 2000) }
-      else if (role === 'lecturer') { router.push('/lecturer'); setTimeout(() => { window.location.href = '/school/lecturer'; }, 2000) }
-      else { router.push('/student'); setTimeout(() => { window.location.href = '/school/student'; }, 2000) }
+      if (role === 'admin' || role === 'super_admin') { router.push('/') }
+      else if (role === 'lecturer') { router.push('/lecturer') }
+      else { router.push('/student') }
     } catch (err) {
       const msg = err?.response?.data?.message || err.message || 'Login failed'
       setError(typeof msg === 'string' ? msg : 'Invalid credentials')

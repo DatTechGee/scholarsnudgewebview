@@ -40,10 +40,14 @@ export function AuthProvider({ children }) {
           window.localStorage.setItem('user_data', JSON.stringify(parsed))
         }
       }).catch(() => {
-        window.localStorage.removeItem('admin_token')
-        window.localStorage.removeItem('user_data')
-        window.localStorage.removeItem('user_role')
-        setUser(null)
+        // If cached user exists, keep it — don't force logout on API failure
+        const cached = window.localStorage.getItem('user_data')
+        if (!cached) {
+          window.localStorage.removeItem('admin_token')
+          window.localStorage.removeItem('user_data')
+          window.localStorage.removeItem('user_role')
+          setUser(null)
+        }
       })
     }
 
