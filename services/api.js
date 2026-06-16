@@ -243,6 +243,11 @@ export async function getSessionReport(sessionId, token) {
   return res.data
 }
 
+export async function updateSessionNotes(sessionId, notes, token) {
+  const res = await client.put(`/lecturer/sessions/${sessionId}/notes`, { notes }, authConfig(token))
+  return res.data
+}
+
 export async function getLiveSessionFeed(sessionId, token) {
   const res = await client.get(`/lecturer/sessions/${sessionId}/live`, authConfig(token))
   return res.data

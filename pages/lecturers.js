@@ -6,13 +6,12 @@ import Card from '../components/shadcn/Card'
 import Badge from '../components/shadcn/Badge'
 import Input from '../components/shadcn/Input'
 import { Table, Thead, Th, Tbody, Tr, Td } from '../components/shadcn/Table'
-import { getUsers, createUser, updateUser, deleteUser, getFaculties } from '../services/api'
+import { getUsers, createUser, updateUser, deleteUser } from '../services/api'
 
 const emptyForm = {
   name: '',
   email: '',
   password: '',
-  faculty_id: '',
   staff_id: '',
 }
 
@@ -21,7 +20,6 @@ export default function Lecturers() {
   const [query, setQuery] = useState('')
   const [users, setUsers] = useState([])
   const [meta, setMeta] = useState({ current_page: 1, last_page: 1, total: 0 })
-  const [faculties, setFaculties] = useState([])
   const [editingUser, setEditingUser] = useState(null)
   const [form, setForm] = useState(emptyForm)
   const [showForm, setShowForm] = useState(false)
@@ -42,18 +40,6 @@ export default function Lecturers() {
     if (!tokenInput.trim()) return
     window.localStorage.setItem('admin_token', tokenInput.trim())
   }, [tokenInput])
-
-  useEffect(() => {
-    const loadReferences = async () => {
-      try {
-        const facultiesData = await getFaculties(token)
-        setFaculties(Array.isArray(facultiesData) ? facultiesData : [])
-      } catch (_err) {
-        setError('Failed to load faculties. Verify your admin token and API base URL.')
-      }
-    }
-    if (token) loadReferences()
-  }, [token])
 
   const loadLecturers = async (page = 1) => {
     setLoading(true)
@@ -99,7 +85,6 @@ export default function Lecturers() {
       name: user.name || '',
       email: user.email || '',
       password: '',
-      faculty_id: user.faculty_id ? String(user.faculty_id) : '',
       staff_id: user.staff_id || '',
     })
     setShowForm(true)
@@ -110,8 +95,8 @@ export default function Lecturers() {
   }
 
   const handleSubmit = async () => {
-    if (!form.name || !form.email || !form.faculty_id || !form.staff_id) {
-      setError('Name, email, faculty, and staff ID are required.')
+    if (!form.name || !form.email || !form.staff_id) {
+      setError('Name, email, and staff ID are required.')
       return
     }
 
@@ -125,7 +110,6 @@ export default function Lecturers() {
         name: form.name,
         email: form.email,
         password: form.password || undefined,
-        faculty_id: Number(form.faculty_id),
         staff_id: form.staff_id,
       }
 
@@ -233,19 +217,9 @@ export default function Lecturers() {
               <Input type="password" value={form.password} onChange={(event) => handleFormChange('password', event.target.value)} placeholder={editingUser ? 'Leave blank to keep current' : 'Password'} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-surface-700 mb-1.5">Faculty</label>
-              <select value={form.faculty_id} onChange={(event) => handleFormChange('faculty_id', event.target.value)} className="w-full rounded-lg border border-surface-300 px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500">
-                <option value="">Select faculty</option>
-                {faculties.map((item) => (
-                  <option key={item.id} value={item.id}>{item.name}</option>
-                ))}
-              </select>
-            </div>
-            <div>
               <label className="block text-sm font-medium text-surface-700 mb-1.5">Staff ID</label>
               <Input value={form.staff_id} onChange={(event) => handleFormChange('staff_id', event.target.value)} placeholder="Staff ID" />
             </div>
-            <div className="hidden md:block" />
           </div>
           <div className="mt-6 flex gap-3">
             <Button variant="default" onClick={handleSubmit} disabled={busy}>
@@ -270,7 +244,6 @@ export default function Lecturers() {
                     <Th>Name</Th>
                     <Th>Email</Th>
                     <Th>Staff ID</Th>
-                    <Th>Faculty</Th>
                     <Th>Status</Th>
                     <Th className="text-right">Actions</Th>
                   </Tr>
@@ -281,7 +254,6 @@ export default function Lecturers() {
                       <Td className="font-medium text-surface-800">{user.name}</Td>
                       <Td className="text-surface-500">{user.email}</Td>
                       <Td className="font-mono text-sm">{user.staff_id || <span className="text-surface-300">—</span>}</Td>
-                      <Td className="text-surface-600">{user.faculty_name || <span className="text-surface-300">—</span>}</Td>
                       <Td>
                         <Badge variant={user.is_verified ? 'success' : 'warning'}>
                           {user.is_verified ? 'Verified' : 'Pending'}

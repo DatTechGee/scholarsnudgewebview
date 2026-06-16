@@ -26,6 +26,16 @@ import {
   deleteLecturerSessionTemplate,
   getLecturerSwapRequestsSent,
   createLecturerSwapRequest,
+  updateCourse,
+  updateCourseLocation,
+  getCourseShares,
+  shareCourse,
+  removeCourseShare,
+  getTimetableSlots,
+  createTimetableSlot,
+  deleteTimetableSlot,
+  updateSessionNotes,
+  getUsers,
 } from '../../../services/api'
 
 const statusColors = { active: 'success', stopped: 'default', completed: 'info', cancelled: 'danger' }
@@ -36,6 +46,8 @@ const TABS = [
   { key: 'roster', label: 'Roster' },
   { key: 'attendance', label: 'Attendance' },
   { key: 'templates', label: 'Templates' },
+  { key: 'sharing', label: 'Sharing' },
+  { key: 'timetable', label: 'Timetable' },
   { key: 'swaps', label: 'Swap Requests' },
   { key: 'actions', label: 'Actions' },
 ]
@@ -70,6 +82,8 @@ export default function ManageCourse() {
   const [addMatric, setAddMatric] = useState('')
   const [addName, setAddName] = useState('')
   const [rosterFile, setRosterFile] = useState(null)
+  const [rosterPreview, setRosterPreview] = useState(null)
+  const [rosterParseError, setRosterParseError] = useState('')
 
   // ── Mark by Matric ──
   const [markMatric, setMarkMatric] = useState('')
@@ -90,6 +104,37 @@ export default function ManageCourse() {
   const [viewSessionId, setViewSessionId] = useState(null)
   const [sessionReport, setSessionReport] = useState(null)
   const [sessionReportLoading, setSessionReportLoading] = useState(false)
+
+  // ── Edit Course ──
+  const [showEditCourse, setShowEditCourse] = useState(false)
+  const [editCode, setEditCode] = useState('')
+  const [editTitle, setEditTitle] = useState('')
+  const [editUnit, setEditUnit] = useState('')
+
+  // ── Update Location ──
+  const [showUpdateLoc, setShowUpdateLoc] = useState(false)
+  const [locName, setLocName] = useState('')
+  const [locLat, setLocLat] = useState('')
+  const [locLng, setLocLng] = useState('')
+  const [locRadius, setLocRadius] = useState('')
+
+  // ── Course Sharing ──
+  const [courseShares, setCourseShares] = useState([])
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [shareLecturerId, setShareLecturerId] = useState('')
+  const [lecturers, setLecturers] = useState([])
+
+  // ── Session Notes Editing ──
+  const [editingSessionId, setEditingSessionId] = useState(null)
+  const [editNotesText, setEditNotesText] = useState('')
+
+  // ── Timetable ──
+  const [timetableSlots, setTimetableSlots] = useState([])
+  const [showAddSlot, setShowAddSlot] = useState(false)
+  const [slotDay, setSlotDay] = useState('Monday')
+  const [slotStart, setSlotStart] = useState('08:00')
+  const [slotEnd, setSlotEnd] = useState('10:00')
+  const [slotRoom, setSlotRoom] = useState('')
 
   // ── Init ──
   useEffect(() => {
@@ -163,6 +208,29 @@ export default function ManageCourse() {
     }
   }, [token])
 
+  const loadSharing = useCallback(async () => {
+    if (!token || !id) return
+    try {
+      const data = await getCourseShares(id, token)
+      setCourseShares(Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [])
+      const usersData = await getUsers(token, { role: 'lecturer' })
+      setLecturers(Array.isArray(usersData?.data) ? usersData.data : Array.isArray(usersData) ? usersData : [])
+    } catch (_) {
+      setCourseShares([])
+      setLecturers([])
+    }
+  }, [token, id])
+
+  const loadTimetable = useCallback(async () => {
+    if (!token || !id) return
+    try {
+      const data = await getTimetableSlots(id, token)
+      setTimetableSlots(Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [])
+    } catch (_) {
+      setTimetableSlots([])
+    }
+  }, [token, id])
+
   useEffect(() => {
     if (token && id) {
       loadCourse()
@@ -174,6 +242,8 @@ export default function ManageCourse() {
     if (activeTab === 'roster') loadRoster()
     if (activeTab === 'attendance') loadAnalytics()
     if (activeTab === 'templates') loadTemplates()
+    if (activeTab === 'sharing') loadSharing()
+    if (activeTab === 'timetable') loadTimetable()
     if (activeTab === 'swaps') { loadSwapRequests(); loadAllCourses() }
   }, [activeTab, token, id])
 
@@ -271,6 +341,38 @@ export default function ManageCourse() {
     }
   }
 
+  const handlePreviewRosterCsv = () => {
+    if (!rosterFile) {
+      setError('Select a CSV file first.')
+      return
+    }
+    setRosterPreview(null)
+    setRosterParseError('')
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      try {
+        const text = e.target.result
+        const lines = text.split('\n').filter(l => l.trim())
+        if (lines.length < 2) {
+          setRosterParseError('CSV must have a header row and at least one data row.')
+          return
+        }
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase())
+        const data = lines.slice(1).map(line => {
+          const vals = line.split(',').map(v => v.trim())
+          const row = {}
+          headers.forEach((h, i) => { row[h] = vals[i] || '' })
+          return row
+        })
+        setRosterPreview(data)
+      } catch (_) {
+        setRosterParseError('Failed to parse CSV file.')
+      }
+    }
+    reader.onerror = () => { setRosterParseError('Failed to read file.') }
+    reader.readAsText(rosterFile)
+  }
+
   const handleImportRosterCsv = async () => {
     if (!rosterFile) {
       setError('Select a CSV file first.')
@@ -280,6 +382,8 @@ export default function ManageCourse() {
     try {
       await importRosterCsv(id, rosterFile, token)
       setRosterFile(null)
+      setRosterPreview(null)
+      setRosterParseError('')
       await loadRoster()
     } catch (err) {
       setError(err?.response?.data?.message || 'CSV import failed.')
@@ -363,6 +467,145 @@ export default function ManageCourse() {
       await loadSwapRequests()
     } catch (err) {
       setError(err?.response?.data?.message || 'Failed to create swap request.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // ── Edit Course Handlers ──
+  const handleEditCourse = async () => {
+    if (!editCode.trim() && !editTitle.trim() && !editUnit.trim()) {
+      setError('Fill in at least one field.')
+      return
+    }
+    setBusy(true)
+    setError('')
+    try {
+      const payload = {}
+      if (editCode.trim()) payload.code = editCode.trim()
+      if (editTitle.trim()) payload.title = editTitle.trim()
+      if (editUnit.trim()) payload.course_unit = editUnit.trim()
+      await updateCourse(id, payload, token)
+      setShowEditCourse(false)
+      setEditCode('')
+      setEditTitle('')
+      setEditUnit('')
+      await loadCourse()
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Failed to update course.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // ── Update Location Handlers ──
+  const handleUpdateLocation = async () => {
+    if (!locName.trim()) {
+      setError('Location name is required.')
+      return
+    }
+    setBusy(true)
+    setError('')
+    try {
+      const payload = { location_name: locName.trim() }
+      if (locLat.trim()) payload.latitude = parseFloat(locLat.trim())
+      if (locLng.trim()) payload.longitude = parseFloat(locLng.trim())
+      if (locRadius.trim()) payload.location_radius_meters = parseInt(locRadius.trim(), 10)
+      await updateCourseLocation(id, payload, token)
+      setShowUpdateLoc(false)
+      setLocName('')
+      setLocLat('')
+      setLocLng('')
+      setLocRadius('')
+      await loadCourse()
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Failed to update location.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // ── Sharing Handlers ──
+  const handleShareCourse = async () => {
+    if (!shareLecturerId) {
+      setError('Select a lecturer.')
+      return
+    }
+    setBusy(true)
+    setError('')
+    try {
+      await shareCourse(id, shareLecturerId, token)
+      setShowShareModal(false)
+      setShareLecturerId('')
+      await loadSharing()
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Failed to share course.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleRemoveShare = async (shareId) => {
+    if (!window.confirm('Remove this share?')) return
+    setBusy(true)
+    try {
+      await removeCourseShare(id, shareId, token)
+      await loadSharing()
+    } catch (_) {
+      setError('Failed to remove share.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // ── Session Notes Handlers ──
+  const handleEditSessionNotes = async () => {
+    if (editingSessionId == null) return
+    setBusy(true)
+    setError('')
+    try {
+      await updateSessionNotes(editingSessionId, editNotesText, token)
+      setEditingSessionId(null)
+      setEditNotesText('')
+      await loadCourse()
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Failed to update notes.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // ── Timetable Handlers ──
+  const dayMap = { Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 }
+
+  const handleAddSlot = async () => {
+    setBusy(true)
+    setError('')
+    try {
+      const payload = { day_of_week: dayMap[slotDay] ?? 1, start_time: slotStart, end_time: slotEnd }
+      if (slotRoom.trim()) payload.venue = slotRoom.trim()
+      await createTimetableSlot(id, payload, token)
+      setShowAddSlot(false)
+      setSlotDay('Monday')
+      setSlotStart('08:00')
+      setSlotEnd('10:00')
+      setSlotRoom('')
+      await loadTimetable()
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Failed to add timetable slot.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleDeleteSlot = async (slotId) => {
+    if (!window.confirm('Delete this timetable slot?')) return
+    setBusy(true)
+    try {
+      await deleteTimetableSlot(slotId, token)
+      await loadTimetable()
+    } catch (_) {
+      setError('Failed to delete slot.')
     } finally {
       setBusy(false)
     }
@@ -538,6 +781,17 @@ export default function ManageCourse() {
                   </div>
                 </Card>
               )}
+
+              {/* Edit Course */}
+              <Card>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold">Course Settings</h2>
+                  <div className="flex gap-2">
+                    <Button variant="ghost" onClick={() => { setEditCode(course.code || ''); setEditTitle(course.title || ''); setEditUnit(course.course_unit || ''); setShowEditCourse(true) }}>Edit Course</Button>
+                    <Button variant="ghost" onClick={() => { setLocName(course.location_name || ''); setLocLat(course.latitude || ''); setLocLng(course.longitude || ''); setLocRadius(course.location_radius_meters || ''); setShowUpdateLoc(true) }}>Update Location</Button>
+                  </div>
+                </div>
+              </Card>
             </div>
           )}
 
@@ -581,9 +835,10 @@ export default function ManageCourse() {
                               <span className="text-slate-600 font-medium">{s.attendance_count ?? 0} attended</span>
                               <span className="text-slate-400">/ {s.expected_count ?? '—'} expected</span>
                             </div>
-                            {s.notes ? <p className="text-xs text-slate-400 mt-1 italic">📝 {s.notes}</p> : null}
+                            {s.notes ? <p className="text-xs text-slate-400 mt-1 italic">{s.notes}</p> : null}
                           </div>
                           <div className="flex gap-1 ml-4 shrink-0">
+                            <Button variant="ghost" onClick={() => { setEditingSessionId(s.id); setEditNotesText(s.notes || ''); }}>Edit Notes</Button>
                             <Button variant="ghost" onClick={() => handleViewReport(s.id)}>View Report</Button>
                             {s.status === 'active' ? (
                               <>
@@ -649,15 +904,58 @@ export default function ManageCourse() {
 
               {/* CSV Import */}
               <Card>
-                <h3 className="text-sm font-semibold text-slate-700 mb-3">Import from CSV</h3>
+                <h3 className="text-sm font-semibold text-slate-700 mb-3">Bulk Upload from CSV</h3>
                 <div className="flex items-center gap-2">
                   <input
                     type="file"
                     accept=".csv"
-                    onChange={(e) => setRosterFile(e.target.files?.[0] || null)}
+                    onChange={(e) => { setRosterFile(e.target.files?.[0] || null); setRosterPreview(null); setRosterParseError('') }}
                     className="text-sm flex-1"
                   />
-                  <Button variant="ghost" onClick={handleImportRosterCsv} disabled={busy || !rosterFile}>Import CSV</Button>
+                  <Button variant="ghost" onClick={handlePreviewRosterCsv} disabled={!rosterFile}>Preview</Button>
+                </div>
+                {rosterParseError ? (
+                  <p className="text-xs text-red-500 mt-2">{rosterParseError}</p>
+                ) : null}
+                {rosterPreview ? (
+                  <div className="mt-3 pt-3 border-t border-slate-100">
+                    <p className="text-sm font-medium text-slate-700 mb-2">{rosterPreview.length} student(s) found:</p>
+                    <div className="max-h-40 overflow-auto mb-3">
+                      <Table>
+                        <Thead>
+                          <Tr>
+                            <Th>Matric</Th>
+                            <Th>Name</Th>
+                          </Tr>
+                        </Thead>
+                        <Tbody>
+                          {rosterPreview.map((r, i) => (
+                            <Tr key={i}>
+                              <Td className="font-mono text-sm">{r.matric_number || r.matric || r.matricnumber || '—'}</Td>
+                              <Td>{r.name || r.student_name || r.fullname || r.studentname || '—'}</Td>
+                            </Tr>
+                          ))}
+                        </Tbody>
+                      </Table>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button onClick={handleImportRosterCsv} disabled={busy}>{busy ? 'Importing...' : 'Confirm Import'}</Button>
+                      <Button variant="ghost" onClick={() => { setRosterFile(null); setRosterPreview(null); setRosterParseError('') }}>Cancel</Button>
+                    </div>
+                  </div>
+                ) : rosterFile && !rosterParseError ? (
+                  <div className="mt-2">
+                    <Button variant="ghost" onClick={handleImportRosterCsv} disabled={busy}>{busy ? 'Importing...' : 'Import Directly'}</Button>
+                  </div>
+                ) : null}
+                <div className="mt-3 pt-3 border-t border-slate-100">
+                  <a
+                    href="data:text/csv;charset=utf-8,matric_number,name%0A"
+                    download="roster_template.csv"
+                    className="text-xs text-blue-600 hover:text-blue-800 underline"
+                  >
+                    Download CSV Template
+                  </a>
                 </div>
               </Card>
 
@@ -787,6 +1085,70 @@ export default function ManageCourse() {
                           </div>
                         </div>
                         <Button variant="destructive" onClick={() => handleDeleteTemplate(t.id)} disabled={busy}>Delete</Button>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ═══ TAB: Sharing ═══ */}
+          {activeTab === 'sharing' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold">Course Sharing ({Array.isArray(courseShares) ? courseShares.length : 0})</h2>
+                <Button onClick={() => { loadSharing(); setShowShareModal(true) }} disabled={busy}>Share with Lecturer</Button>
+              </div>
+
+              {!Array.isArray(courseShares) || courseShares.length === 0 ? (
+                <Card className="p-12 text-center text-slate-400">
+                  <p className="mb-4">No shares yet.</p>
+                  <Button onClick={() => setShowShareModal(true)}>Share This Course</Button>
+                </Card>
+              ) : (
+                <div className="space-y-3">
+                  {courseShares.map(sh => (
+                    <Card key={sh.id} className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-slate-800">{sh.lecturer?.name || sh.lecturer_name || `Lecturer #${sh.lecturer_id}`}</p>
+                          <p className="text-xs text-slate-400">{sh.lecturer?.email || sh.lecturer_email || ''}</p>
+                        </div>
+                        <Button variant="destructive" onClick={() => handleRemoveShare(sh.id)} disabled={busy}>Remove</Button>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ═══ TAB: Timetable ═══ */}
+          {activeTab === 'timetable' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold">Timetable Slots ({Array.isArray(timetableSlots) ? timetableSlots.length : 0})</h2>
+                <Button onClick={() => setShowAddSlot(true)}>Add Slot</Button>
+              </div>
+
+              {!Array.isArray(timetableSlots) || timetableSlots.length === 0 ? (
+                <Card className="p-12 text-center text-slate-400">
+                  <p>No timetable slots. Add a slot to schedule this course.</p>
+                </Card>
+              ) : (
+                <div className="space-y-3">
+                  {timetableSlots.map(slot => (
+                    <Card key={slot.id} className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-semibold text-slate-800">{['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][slot.day_of_week] || slot.day_of_week}</p>
+                          <p className="text-sm text-slate-500">
+                            {slot.start_time} — {slot.end_time}
+                            {slot.venue || slot.room ? <> &middot; {slot.venue || slot.room}</> : null}
+                          </p>
+                        </div>
+                        <Button variant="destructive" onClick={() => handleDeleteSlot(slot.id)} disabled={busy}>Delete</Button>
                       </div>
                     </Card>
                   ))}
@@ -1067,6 +1429,126 @@ export default function ManageCourse() {
           <div className="flex gap-2">
             <Button onClick={handleCreateSwap} disabled={busy}>{busy ? 'Sending...' : 'Send Request'}</Button>
             <Button variant="ghost" onClick={() => setShowCreateSwap(false)}>Cancel</Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ═══ MODAL: Edit Course ═══ */}
+      <Modal open={showEditCourse} onClose={() => setShowEditCourse(false)} title="Edit Course">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Course Code</label>
+            <Input value={editCode} onChange={(e) => setEditCode(e.target.value)} placeholder={course?.code} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Course Title</label>
+            <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder={course?.title} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Course Unit</label>
+            <Input value={editUnit} onChange={(e) => setEditUnit(e.target.value)} placeholder={course?.course_unit} />
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={handleEditCourse} disabled={busy}>{busy ? 'Saving...' : 'Save Changes'}</Button>
+            <Button variant="ghost" onClick={() => setShowEditCourse(false)}>Cancel</Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ═══ MODAL: Update Location ═══ */}
+      <Modal open={showUpdateLoc} onClose={() => setShowUpdateLoc(false)} title="Update Course Location">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Location Name *</label>
+            <Input value={locName} onChange={(e) => setLocName(e.target.value)} placeholder="e.g. Main Lecture Hall" />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-sm font-medium mb-1">Latitude</label>
+              <Input value={locLat} onChange={(e) => setLocLat(e.target.value)} placeholder="6.5244" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Longitude</label>
+              <Input value={locLng} onChange={(e) => setLocLng(e.target.value)} placeholder="3.3792" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Radius (meters)</label>
+            <Input type="number" value={locRadius} onChange={(e) => setLocRadius(e.target.value)} placeholder="50" />
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={handleUpdateLocation} disabled={busy}>{busy ? 'Saving...' : 'Update Location'}</Button>
+            <Button variant="ghost" onClick={() => setShowUpdateLoc(false)}>Cancel</Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ═══ MODAL: Share Course ═══ */}
+      <Modal open={showShareModal} onClose={() => setShowShareModal(false)} title="Share Course with Lecturer">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Select Lecturer *</label>
+            <Select
+              options={lecturers.map(l => ({ value: String(l.id), label: `${l.name || l.first_name || ''} ${l.last_name || ''} — ${l.email || ''}` }))}
+              value={shareLecturerId}
+              onChange={setShareLecturerId}
+              placeholder="Choose a lecturer..."
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={handleShareCourse} disabled={busy || !shareLecturerId}>{busy ? 'Sharing...' : 'Share Course'}</Button>
+            <Button variant="ghost" onClick={() => setShowShareModal(false)}>Cancel</Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ═══ MODAL: Edit Session Notes ═══ */}
+      <Modal open={editingSessionId != null} onClose={() => setEditingSessionId(null)} title={`Edit Notes - Session #${editingSessionId}`}>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Session Notes</label>
+            <textarea
+              value={editNotesText}
+              onChange={(e) => setEditNotesText(e.target.value)}
+              placeholder="Enter session notes..."
+              className="px-3 py-2 border rounded-md w-full min-h-[120px]"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={handleEditSessionNotes} disabled={busy}>{busy ? 'Saving...' : 'Save Notes'}</Button>
+            <Button variant="ghost" onClick={() => setEditingSessionId(null)}>Cancel</Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ═══ MODAL: Add Timetable Slot ═══ */}
+      <Modal open={showAddSlot} onClose={() => setShowAddSlot(false)} title="Add Timetable Slot">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Day *</label>
+            <Select
+              options={['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'].map(d => ({ value: d, label: d }))}
+              value={slotDay}
+              onChange={setSlotDay}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-sm font-medium mb-1">Start Time *</label>
+              <Input type="time" value={slotStart} onChange={(e) => setSlotStart(e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">End Time *</label>
+              <Input type="time" value={slotEnd} onChange={(e) => setSlotEnd(e.target.value)} />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Room (optional)</label>
+            <Input value={slotRoom} onChange={(e) => setSlotRoom(e.target.value)} placeholder="e.g. LT1" />
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={handleAddSlot} disabled={busy}>{busy ? 'Adding...' : 'Add Slot'}</Button>
+            <Button variant="ghost" onClick={() => setShowAddSlot(false)}>Cancel</Button>
           </div>
         </div>
       </Modal>

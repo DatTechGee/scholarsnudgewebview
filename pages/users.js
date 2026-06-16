@@ -4,8 +4,6 @@ import Button from '../components/shadcn/Button'
 import {
   createUser,
   deleteUser,
-  getDepartments,
-  getFaculties,
   getLevels,
   getUsers,
   importUsersCsv,
@@ -17,8 +15,6 @@ const emptyForm = {
   name: '',
   email: '',
   password: '',
-  faculty_id: '',
-  department_id: '',
   academic_level_id: '',
   matric_number: '',
   staff_id: '',
@@ -30,8 +26,6 @@ export default function Users() {
   const [roleFilter, setRoleFilter] = useState('')
   const [users, setUsers] = useState([])
   const [meta, setMeta] = useState({ current_page: 1, last_page: 1, total: 0 })
-  const [faculties, setFaculties] = useState([])
-  const [departments, setDepartments] = useState([])
   const [levels, setLevels] = useState([])
   const [editingUser, setEditingUser] = useState(null)
   const [form, setForm] = useState(emptyForm)
@@ -50,11 +44,6 @@ export default function Users() {
     return ''
   }, [tokenInput])
 
-  const filteredDepartments = useMemo(() => {
-    if (!form.faculty_id) return []
-    return departments.filter((item) => String(item.faculty_id) === String(form.faculty_id))
-  }, [departments, form.faculty_id])
-
   useEffect(() => {
     if (!tokenInput.trim()) return
     window.localStorage.setItem('admin_token', tokenInput.trim())
@@ -63,17 +52,10 @@ export default function Users() {
   useEffect(() => {
     const loadReferences = async () => {
       try {
-        const [facultiesData, departmentsData, levelsData] = await Promise.all([
-          getFaculties(token),
-          getDepartments(token),
-          getLevels(token),
-        ])
-
-        setFaculties(Array.isArray(facultiesData) ? facultiesData : [])
-        setDepartments(Array.isArray(departmentsData) ? departmentsData : [])
+        const levelsData = await getLevels(token)
         setLevels(Array.isArray(levelsData) ? levelsData : [])
       } catch (_err) {
-        setError('Failed to load faculties/departments/levels. Verify your admin token and API base URL.')
+        setError('Failed to load levels. Verify your admin token and API base URL.')
       }
     }
 
@@ -127,8 +109,6 @@ export default function Users() {
       name: user.name || '',
       email: user.email || '',
       password: '',
-      faculty_id: user.faculty_id ? String(user.faculty_id) : '',
-      department_id: user.department_id ? String(user.department_id) : '',
       academic_level_id: user.academic_level_id ? String(user.academic_level_id) : '',
       matric_number: user.matric_number || '',
       staff_id: user.staff_id || '',
@@ -141,21 +121,20 @@ export default function Users() {
       ...prev,
       [field]: value,
       ...(field === 'role' && value === 'lecturer'
-        ? { department_id: '', academic_level_id: '', matric_number: '' }
+        ? { academic_level_id: '', matric_number: '' }
         : {}),
       ...(field === 'role' && value === 'student' ? { staff_id: '' } : {}),
-      ...(field === 'faculty_id' ? { department_id: '' } : {}),
     }))
   }
 
   const validateForm = () => {
-    if (!form.name || !form.email || !form.faculty_id) {
-      return 'Name, email, and faculty are required.'
+    if (!form.name || !form.email) {
+      return 'Name and email are required.'
     }
 
     if (form.role === 'student') {
-      if (!form.department_id || !form.academic_level_id || !form.matric_number) {
-        return 'For students, department, level, and matric number are required.'
+      if (!form.academic_level_id || !form.matric_number) {
+        return 'For students, level and matric number are required.'
       }
     }
 
@@ -183,8 +162,6 @@ export default function Users() {
         name: form.name,
         email: form.email,
         password: form.password || undefined,
-        faculty_id: Number(form.faculty_id),
-        department_id: form.role === 'student' ? Number(form.department_id) : null,
         academic_level_id: form.role === 'student' ? Number(form.academic_level_id) : null,
         matric_number: form.role === 'student' ? form.matric_number : null,
         staff_id: form.role === 'lecturer' ? form.staff_id : null,
@@ -330,22 +307,8 @@ export default function Users() {
               className="rounded border px-3 py-2"
             />
 
-            <select value={form.faculty_id} onChange={(event) => handleFormChange('faculty_id', event.target.value)} className="rounded border px-3 py-2">
-              <option value="">Select faculty</option>
-              {faculties.map((item) => (
-                <option key={item.id} value={item.id}>{item.name}</option>
-              ))}
-            </select>
-
             {form.role === 'student' ? (
               <>
-                <select value={form.department_id} onChange={(event) => handleFormChange('department_id', event.target.value)} className="rounded border px-3 py-2">
-                  <option value="">Select department</option>
-                  {filteredDepartments.map((item) => (
-                    <option key={item.id} value={item.id}>{item.name}</option>
-                  ))}
-                </select>
-
                 <select value={form.academic_level_id} onChange={(event) => handleFormChange('academic_level_id', event.target.value)} className="rounded border px-3 py-2">
                   <option value="">Select level</option>
                   {levels.map((item) => (

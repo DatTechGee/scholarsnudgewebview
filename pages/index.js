@@ -8,18 +8,33 @@ import { getDashboardSummary, getWeeklyAttendanceStats, getUsers, getAdminSessio
 import { useRouter } from 'next/router'
 import { useAuth } from '../components/AuthContext'
 
-function StatCard({ label, value, sub, icon, color }) {
+function DonutChart({ data, size = 160 }) {
+  const total = data.reduce((s, d) => s + d.value, 0) || 1
+  let cumulative = 0
+  const segments = data.map(d => {
+    const start = (cumulative / total) * 360
+    cumulative += d.value
+    const end = (cumulative / total) * 360
+    return { ...d, start, end }
+  })
+  const conic = segments.map(s => `${s.color} ${s.start}deg ${s.end}deg`).join(', ')
   return (
-    <div className="stat-card">
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="text-3xl font-extrabold text-surface-800">{value ?? '—'}</div>
-          <div className="text-sm font-semibold text-surface-500 mt-0.5">{label}</div>
-          {sub ? <div className="text-xs font-medium text-surface-400 mt-1">{sub}</div> : null}
-        </div>
-        <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0" style={{ background: `linear-gradient(135deg, ${color}15, ${color}08)` }}>
-          <span>{icon}</span>
-        </div>
+    <div className="flex flex-col items-center gap-3">
+      <div
+        className="rounded-full shrink-0"
+        style={{
+          width: size, height: size,
+          background: `conic-gradient(${conic})`,
+          boxShadow: 'inset 0 0 0 12px white',
+        }}
+      />
+      <div className="flex flex-wrap gap-3 justify-center">
+        {data.map((d, i) => (
+          <div key={i} className="flex items-center gap-1.5 text-xs font-medium text-surface-600">
+            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: d.color }} />
+            {d.label} ({d.value})
+          </div>
+        ))}
       </div>
     </div>
   )
@@ -41,6 +56,23 @@ function MiniBar({ data, color }) {
   )
 }
 
+function StatCard({ label, value, sub, icon, color }) {
+  return (
+    <div className="stat-card">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-3xl font-extrabold text-surface-800">{value ?? '—'}</div>
+          <div className="text-sm font-semibold text-surface-500 mt-0.5">{label}</div>
+          {sub ? <div className="text-xs font-medium text-surface-400 mt-1">{sub}</div> : null}
+        </div>
+        <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0" style={{ background: `linear-gradient(135deg, ${color}15, ${color}08)` }}>
+          <span>{icon}</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function Dashboard() {
   const router = useRouter()
   const { user } = useAuth()
@@ -51,13 +83,8 @@ export default function Dashboard() {
   const [recentCourses, setRecentCourses] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [token, setToken] = useState('')
 
-  const getToken = useCallback(() => {
-    const t = window.localStorage.getItem('admin_token') || ''
-    setToken(t)
-    return t
-  }, [])
+  const getToken = useCallback(() => window.localStorage.getItem('admin_token') || '', [])
 
   useEffect(() => {
     const t = getToken()
@@ -91,6 +118,12 @@ export default function Dashboard() {
     }
   }, [getToken])
 
+  const donutData = [
+    { label: 'Students', value: summary?.students ?? 0, color: '#6366f1' },
+    { label: 'Lecturers', value: summary?.lecturers ?? 0, color: '#10b981' },
+    { label: 'Courses', value: summary?.courses ?? 0, color: '#2f6df6' },
+  ]
+
   return (
     <Layout>
       {loading ? (
@@ -109,12 +142,20 @@ export default function Dashboard() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
             <StatCard label="Students" value={summary?.students ?? 0} sub="Enrolled" icon="🎓" color="#6366f1" />
             <StatCard label="Lecturers" value={summary?.lecturers ?? 0} sub="Active faculty" icon="👨‍🏫" color="#10b981" />
-            <StatCard label="Courses" value={summary?.courses ?? 0} sub="Across all departments" icon="📚" color="#2f6df6" />
-            <StatCard label="Faculties" value={summary?.faculties ?? 0} sub={`${summary?.departments ?? 0} departments`} icon="🏛️" color="#f59e0b" />
+            <StatCard label="Courses" value={summary?.courses ?? 0} sub="Across all levels" icon="📚" color="#2f6df6" />
+            <StatCard label="Sessions" value={summary?.sessions ?? activeSessions.length} sub={`${activeSessions.length} active now`} icon="📋" color="#f59e0b" />
           </div>
 
-          <div className="grid gap-6 mb-6 lg:grid-cols-3">
+          <div className="grid gap-6 mb-6 lg:grid-cols-5">
             <Card className="lg:col-span-2 p-6">
+              <div className="text-center mb-4">
+                <h3 className="text-heading3 text-surface-800">System Overview</h3>
+                <p className="text-sm font-medium text-surface-400 mt-0.5">User distribution</p>
+              </div>
+              <DonutChart data={donutData} />
+            </Card>
+
+            <Card className="lg:col-span-3 p-6">
               <div className="flex items-center justify-between mb-5">
                 <div>
                   <h3 className="text-heading3 text-surface-800">Weekly Attendance Trend</h3>
@@ -125,34 +166,6 @@ export default function Dashboard() {
                 )}
               </div>
               <MiniBar data={weekly} color="#2f6df6" />
-            </Card>
-
-            <Card className="p-6">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="icon-box w-10 h-10">
-                  <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
-                </div>
-                <div>
-                  <h3 className="text-heading3 text-surface-800">Institution Overview</h3>
-                  <p className="text-sm font-medium text-surface-400 mt-0.5">Key metrics at a glance</p>
-                </div>
-              </div>
-              <div className="space-y-3">
-                {[
-                  { label: 'Faculties', value: summary?.faculties ?? 0, color: 'bg-primary-500', gradient: 'from-primary-50 to-primary-100/50' },
-                  { label: 'Departments', value: summary?.departments ?? 0, color: 'bg-accent-500', gradient: 'from-accent-50 to-accent-100/50' },
-                  { label: 'Academic Levels', value: summary?.academic_levels ?? 0, color: 'bg-purple-500', gradient: 'from-purple-50 to-purple-100/50' },
-                  { label: 'Students', value: summary?.students ?? 0, color: 'bg-amber-500', gradient: 'from-amber-50 to-amber-100/50' },
-                ].map(item => (
-                  <div key={item.label} className={`flex items-center justify-between p-3.5 rounded-xl bg-gradient-to-r ${item.gradient}`}>
-                    <span className="text-sm font-bold text-surface-600">{item.label}</span>
-                    <div className="flex items-center gap-2.5">
-                      <div className={`w-2 h-2 rounded-full ${item.color}`} />
-                      <span className="text-xl font-extrabold text-surface-800">{item.value}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
             </Card>
           </div>
 
@@ -265,8 +278,8 @@ export default function Dashboard() {
                   <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                 </div>
                 <div>
-                  <h3 className="font-bold text-surface-800">Academic Structure</h3>
-                  <p className="text-xs font-medium text-surface-400 mt-0.5">Institution breakdown</p>
+                  <h3 className="font-bold text-surface-800">Institution Overview</h3>
+                  <p className="text-xs font-medium text-surface-400 mt-0.5">Key metrics at a glance</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -274,9 +287,9 @@ export default function Dashboard() {
                   <div className="text-2xl font-extrabold text-primary-600">{summary?.faculties ?? 0}</div>
                   <div className="text-sm font-bold text-primary-700 mt-1">Faculties</div>
                 </div>
-                <div className="p-4 rounded-2xl bg-gradient-to-br from-accent-50 to-accent-100/50 border border-accent-200/50">
-                  <div className="text-2xl font-extrabold text-accent-600">{summary?.departments ?? 0}</div>
-                  <div className="text-sm font-bold text-accent-700 mt-1">Departments</div>
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-200/50">
+                  <div className="text-2xl font-extrabold text-emerald-600">{summary?.departments ?? 0}</div>
+                  <div className="text-sm font-bold text-emerald-700 mt-1">Departments</div>
                 </div>
                 <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-50 to-purple-100/50 border border-purple-200/50">
                   <div className="text-2xl font-extrabold text-purple-600">{summary?.academic_levels ?? 0}</div>

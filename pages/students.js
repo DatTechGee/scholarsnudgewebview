@@ -11,8 +11,6 @@ import { Table, Thead, Th, Tbody, Tr, Td } from '../components/shadcn/Table'
 import {
   createUser,
   deleteUser,
-  getDepartments,
-  getFaculties,
   getLevels,
   getUsers,
   updateUser,
@@ -23,8 +21,6 @@ const emptyForm = {
   name: '',
   email: '',
   password: '',
-  faculty_id: '',
-  department_id: '',
   academic_level_id: '',
   matric_number: '',
 }
@@ -35,8 +31,6 @@ export default function Students() {
   const [query, setQuery] = useState('')
   const [students, setStudents] = useState([])
   const [meta, setMeta] = useState({ current_page: 1, last_page: 1, total: 0 })
-  const [faculties, setFaculties] = useState([])
-  const [departments, setDepartments] = useState([])
   const [levels, setLevels] = useState([])
   const [editingStudent, setEditingStudent] = useState(null)
   const [form, setForm] = useState(emptyForm)
@@ -54,11 +48,6 @@ export default function Students() {
     return ''
   }, [tokenInput])
 
-  const filteredDepartments = useMemo(() => {
-    if (!form.faculty_id) return []
-    return departments.filter((item) => String(item.faculty_id) === String(form.faculty_id))
-  }, [departments, form.faculty_id])
-
   useEffect(() => {
     if (!tokenInput.trim()) return
     window.localStorage.setItem('admin_token', tokenInput.trim())
@@ -67,16 +56,10 @@ export default function Students() {
   useEffect(() => {
     const loadReferences = async () => {
       try {
-        const [facultiesData, departmentsData, levelsData] = await Promise.all([
-          getFaculties(token),
-          getDepartments(token),
-          getLevels(token),
-        ])
-        setFaculties(Array.isArray(facultiesData) ? facultiesData : [])
-        setDepartments(Array.isArray(departmentsData) ? departmentsData : [])
+        const levelsData = await getLevels(token)
         setLevels(Array.isArray(levelsData) ? levelsData : [])
       } catch (_err) {
-        setError('Failed to load faculties/departments/levels. Verify your admin token and API base URL.')
+        setError('Failed to load levels. Verify your admin token and API base URL.')
       }
     }
     loadReferences()
@@ -127,8 +110,6 @@ export default function Students() {
       name: student.name || '',
       email: student.email || '',
       password: '',
-      faculty_id: student.faculty_id ? String(student.faculty_id) : '',
-      department_id: student.department_id ? String(student.department_id) : '',
       academic_level_id: student.academic_level_id ? String(student.academic_level_id) : '',
       matric_number: student.matric_number || '',
     })
@@ -136,19 +117,15 @@ export default function Students() {
   }
 
   const handleFormChange = (field, value) => {
-    setForm((prev) => ({
-      ...prev,
-      [field]: value,
-      ...(field === 'faculty_id' ? { department_id: '' } : {}),
-    }))
+    setForm((prev) => ({ ...prev, [field]: value }))
   }
 
   const validateForm = () => {
-    if (!form.name || !form.email || !form.faculty_id) {
-      return 'Name, email, and faculty are required.'
+    if (!form.name || !form.email) {
+      return 'Name and email are required.'
     }
-    if (!form.department_id || !form.academic_level_id || !form.matric_number) {
-      return 'Department, level, and matric number are required.'
+    if (!form.academic_level_id || !form.matric_number) {
+      return 'Level and matric number are required.'
     }
     return ''
   }
@@ -168,8 +145,6 @@ export default function Students() {
         name: form.name,
         email: form.email,
         password: form.password || undefined,
-        faculty_id: Number(form.faculty_id),
-        department_id: Number(form.department_id),
         academic_level_id: Number(form.academic_level_id),
         matric_number: form.matric_number,
       }
@@ -252,18 +227,6 @@ export default function Students() {
             placeholder={editingStudent ? 'New password (optional)' : 'Password (optional)'}
           />
           <Select
-            options={faculties.map((f) => ({ value: String(f.id), label: f.name }))}
-            value={form.faculty_id}
-            onChange={(value) => handleFormChange('faculty_id', value)}
-            placeholder="Select faculty"
-          />
-          <Select
-            options={filteredDepartments.map((d) => ({ value: String(d.id), label: d.name }))}
-            value={form.department_id}
-            onChange={(value) => handleFormChange('department_id', value)}
-            placeholder="Select department"
-          />
-          <Select
             options={levels.map((l) => ({ value: String(l.id), label: l.name }))}
             value={form.academic_level_id}
             onChange={(value) => handleFormChange('academic_level_id', value)}
@@ -293,7 +256,6 @@ export default function Students() {
                 <Th>Name</Th>
                 <Th>Email</Th>
                 <Th>Matric Number</Th>
-                <Th>Faculty / Department</Th>
                 <Th>Level</Th>
                 <Th>Status</Th>
                 <Th className="text-right">Actions</Th>
@@ -305,9 +267,6 @@ export default function Students() {
                   <Td className="font-medium">{student.name}</Td>
                   <Td className="text-surface-500">{student.email}</Td>
                   <Td>{student.matric_number || '-'}</Td>
-                  <Td>
-                    {student.faculty_name || '-'} / {student.department_name || '-'}
-                  </Td>
                   <Td>{student.academic_level?.name || '-'}</Td>
                   <Td>
                     <Badge variant={student.is_verified ? 'success' : 'warning'}>
