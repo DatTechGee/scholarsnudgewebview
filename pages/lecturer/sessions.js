@@ -150,7 +150,16 @@ export default function LecturerSessions() {
   const [showCreate, setShowCreate] = useState(false)
   const [duration, setDuration] = useState(60)
   const [notes, setNotes] = useState('')
+  const [locationName, setLocationName] = useState('')
+  const [latitude, setLatitude] = useState('')
+  const [longitude, setLongitude] = useState('')
+  const [radius, setRadius] = useState('')
+  const [seatingCapacity, setSeatingCapacity] = useState('')
   const [busy, setBusy] = useState(false)
+  const [locationSearch, setLocationSearch] = useState('')
+  const [locationResults, setLocationResults] = useState([])
+  const [searchingLocation, setSearchingLocation] = useState(false)
+  const [gettingCurrentLocation, setGettingCurrentLocation] = useState(false)
   const [roster, setRoster] = useState([])
   const [showRoster, setShowRoster] = useState(false)
   const [addMatric, setAddMatric] = useState('')
@@ -177,6 +186,61 @@ export default function LecturerSessions() {
 
   useEffect(() => { loadCourse() }, [loadCourse])
 
+  // Auto-fill location from course when modal opens
+  useEffect(() => {
+    if (showCreate && course) {
+      setLocationName(course.location_name || '')
+      setLatitude(course.location_latitude || '')
+      setLongitude(course.location_longitude || '')
+      setRadius(course.location_radius_meters || '')
+    }
+  }, [showCreate, course])
+
+  // Debounced location search
+  useEffect(() => {
+    if (!locationSearch.trim() || locationSearch.length < 3) {
+      setLocationResults([])
+      return
+    }
+    const timer = setTimeout(async () => {
+      setSearchingLocation(true)
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationSearch)}&limit=5&addressdetails=1`)
+        const data = await res.json()
+        setLocationResults(data)
+      } catch (_) { setLocationResults([]) }
+      finally { setSearchingLocation(false) }
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [locationSearch])
+
+  const selectLocation = (place) => {
+    setLocationName(place.display_name)
+    setLatitude(place.lat)
+    setLongitude(place.lon)
+    setLocationSearch('')
+    setLocationResults([])
+  }
+
+  const useCurrentLocation = () => {
+    if (!navigator.geolocation) { setError('Geolocation not supported.'); return }
+    setGettingCurrentLocation(true)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLatitude(pos.coords.latitude.toString())
+        setLongitude(pos.coords.longitude.toString())
+        setRadius(pos.coords.accuracy ? Math.max(50, Math.round(pos.coords.accuracy * 2)).toString() : '150')
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`)
+          .then(r => r.json())
+          .then(d => { if (d.display_name) setLocationName(d.display_name) })
+          .catch(() => {})
+        setGettingCurrentLocation(false)
+      },
+      () => { setError('Could not get location.'); setGettingCurrentLocation(false) },
+      { enableHighAccuracy: true, timeout: 10000 }
+    )
+  }
+
   const loadRoster = async () => {
     try {
       const data = await getCourseRoster(course_id, token)
@@ -185,12 +249,19 @@ export default function LecturerSessions() {
   }
 
   const handleCreateSession = async () => {
+    if (!latitude || !longitude) { setError('Location is required. Search for a location or use current location.'); return }
     setBusy(true); setError('')
     try {
       const payload = { duration_minutes: duration }
       if (notes.trim()) payload.notes = notes.trim()
+      if (locationName.trim()) payload.location_name = locationName.trim()
+      if (latitude) payload.latitude = Number(latitude)
+      if (longitude) payload.longitude = Number(longitude)
+      if (radius) payload.radius_meters = Number(radius)
+      if (seatingCapacity) payload.seating_capacity = Number(seatingCapacity)
       await createSession(course_id, payload, token)
-      setShowCreate(false); setDuration(60); setNotes('')
+      setShowCreate(false)
+      setDuration(60); setNotes(''); setLocationName(''); setLatitude(''); setLongitude(''); setRadius(''); setSeatingCapacity(''); setLocationSearch(''); setLocationResults([])
       await loadCourse()
     } catch (err) {
       setError(err?.response?.data?.message || 'Failed to create session.')
@@ -344,15 +415,58 @@ export default function LecturerSessions() {
 
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Start New Session">
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Duration (minutes)</label>
-            <Input type="number" value={duration} onChange={(e) => setDuration(Number(e.target.value))} placeholder="60" />
+          <div className="grid gap-3 md:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium mb-1">Duration (minutes) <span className="text-red-400">*</span></label>
+              <Input type="number" min={5} max={300} value={duration} onChange={(e) => setDuration(Number(e.target.value))} placeholder="60" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Seating Capacity</label>
+              <Input type="number" min={1} value={seatingCapacity} onChange={(e) => setSeatingCapacity(e.target.value)} placeholder="Optional" />
+            </div>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium mb-1">Location Name <span className="text-red-400">*</span></label>
+              <div className="relative">
+                <Input value={locationSearch} onChange={(e) => setLocationSearch(e.target.value)} placeholder="Search location..." />
+                {locationResults.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-auto">
+                    {locationResults.map((place, i) => (
+                      <button key={i} onClick={() => selectLocation(place)} className="w-full px-3 py-2 text-left text-sm hover:bg-slate-100">
+                        <div className="font-medium">{place.display_name}</div>
+                        <div className="text-xs text-slate-500">{place.lat}, {place.lon}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {locationName && <p className="mt-1 text-xs text-slate-500">Selected: {locationName}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Radius (meters)</label>
+              <Input type="number" min={10} max={800} value={radius} onChange={(e) => setRadius(e.target.value)} placeholder="e.g. 150" />
+            </div>
+          </div>
+          <div className="flex gap-2 mb-2">
+            <Button variant="outline" onClick={useCurrentLocation} disabled={gettingCurrentLocation} className="flex-1">
+              {gettingCurrentLocation ? '📍 Getting location...' : '📍 Use Current Location'}
+            </Button>
+            <Button variant="ghost" onClick={() => { setLocationName(''); setLatitude(''); setLongitude(''); setLocationSearch('') }}>Clear</Button>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 text-sm text-slate-500">
+            <div><label>Latitude</label> <Input type="number" step="any" value={latitude} onChange={(e) => setLatitude(e.target.value)} placeholder="e.g. 6.5244" readOnly /></div>
+            <div><label>Longitude</label> <Input type="number" step="any" value={longitude} onChange={(e) => setLongitude(e.target.value)} placeholder="e.g. 3.3792" readOnly /></div>
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Session Notes (optional)</label>
             <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Topic: Introduction to Programming" className="px-3 py-2 border rounded-md w-full min-h-[80px]" />
           </div>
-          <Button onClick={handleCreateSession} disabled={busy}>{busy ? 'Starting...' : 'Start Session'}</Button>
+          <div className="flex gap-2">
+            <Button onClick={handleCreateSession} disabled={busy || !duration || !latitude || !longitude}>{busy ? 'Starting...' : 'Start Session'}</Button>
+            <Button variant="ghost" onClick={() => setShowCreate(false)}>Cancel</Button>
+          </div>
+          {!latitude || !longitude ? <p className="text-xs text-amber-600">⚠️ Location is required to start a session</p> : null}
         </div>
       </Modal>
 

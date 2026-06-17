@@ -191,6 +191,7 @@ export default function StudentDashboard() {
     try {
       await checkOutAttendance(session.id, token)
       setMonitoringSession(null)
+      setMonitorTimer(null)
       await loadData(token)
     } catch (err) {
       setError(err?.response?.data?.message || 'Check-out failed.')
@@ -332,12 +333,12 @@ export default function StudentDashboard() {
                   </div>
                   <div className="text-right">
                     <div className="text-3xl font-bold text-blue-700 font-mono">{monitorTimer || '—'}</div>
-                    <div className="text-xs text-blue-500">remaining</div>
+                    <div className="text-xs text-blue-500">{monitorTimer === 'Ended' ? 'Session ended' : 'remaining'}</div>
                   </div>
                 </div>
                 <div className="flex gap-2 mt-3">
                   <Badge variant="success">Checked In ✓</Badge>
-                  <Button size="sm" variant="ghost" onClick={() => { handleCheckOut(monitoringSession); setMonitoringSession(null) }}>Check Out</Button>
+                  <Button size="sm" variant="ghost" onClick={() => handleCheckOut(monitoringSession)}>Check Out</Button>
                 </div>
               </div>
             </Card>
@@ -542,8 +543,8 @@ export default function StudentDashboard() {
           </div>
 
           <div className="flex gap-2 pt-2">
-            <Button onClick={handleCheckIn} disabled={checkInBusy || !faceImage} className="flex-1 bg-emerald-600 hover:bg-emerald-700">
-              {checkInBusy ? 'Checking in...' : '✅ Confirm Check-In'}
+            <Button onClick={handleCheckIn} disabled={checkInBusy || !faceImage || !location} className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50">
+              {checkInBusy ? 'Checking in...' : !location ? '📍 Acquire location first' : '✅ Confirm Check-In'}
             </Button>
             <Button variant="ghost" onClick={() => { setShowCheckIn(false); stopCamera() }}>Cancel</Button>
           </div>
