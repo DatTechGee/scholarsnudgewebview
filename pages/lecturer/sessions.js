@@ -16,7 +16,11 @@ function AttendanceView({ sessionId, token, onRefresh }) {
   const [actionBusy, setActionBusy] = useState(false)
   const load = () => {
     if (!sessionId) return
-    getSessionReport(sessionId, token).then(r => setReport(r?.data || r || {})).catch(() => setReport({}))
+    getSessionReport(sessionId, token).then(r => {
+      const d = r?.data || r || {}
+      if (d.attendances || d.summary) setReport(d)
+      else setReport({})
+    }).catch(() => setReport({}))
   }
   useEffect(() => { load() }, [sessionId])
 

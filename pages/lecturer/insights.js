@@ -207,7 +207,7 @@ export default function LecturerInsights() {
         getCourseAnalytics(courseId, tk).catch(() => null),
         getCourseRoster(courseId, tk).catch(() => null),
       ])
-      setAttendance(Array.isArray(att?.data) ? att.data : Array.isArray(att) ? att : [])
+      setAttendance(Array.isArray(att?.records) ? att.records : Array.isArray(att?.data) ? att.data : Array.isArray(att) ? att : [])
       setAnalytics(an?.data || an || null)
       setRoster(Array.isArray(ros?.data) ? ros.data : Array.isArray(ros) ? ros : [])
     } catch (_) {}

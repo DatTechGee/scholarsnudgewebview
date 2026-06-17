@@ -104,7 +104,7 @@ export default function LecturerAttendance() {
         getCourseAttendance(courseId, tk).catch(() => null),
         getCourseAnalytics(courseId, tk).catch(() => null),
       ])
-      setAttendance(Array.isArray(a?.data) ? a.data : Array.isArray(a) ? a : [])
+      setAttendance(Array.isArray(a?.records) ? a.records : Array.isArray(a?.data) ? a.data : Array.isArray(a) ? a : [])
       setAnalytics(an?.data || an || null)
     } catch (_) { setAttendance([]) }
     finally { setLoading(false) }
@@ -213,10 +213,10 @@ export default function LecturerAttendance() {
         <>
           {analytics && (
             <div className="grid gap-4 md:grid-cols-4 mb-6">
-              <AnalyticsCard label="Total Sessions" value={analytics.total_sessions || 0} color="#3b82f6" icon="📊" />
-              <AnalyticsCard label="Average Attendance" value={analytics.average_attendance != null ? `${analytics.average_attendance}%` : '—'} sub={analytics.total_attendance ? `${analytics.total_attendance} total check-ins` : ''} color="#10b981" icon="✅" trend={analytics.trend} />
-              <AnalyticsCard label="Late Arrivals" value={analytics.late_count || 0} sub={`${analytics.late_percentage || 0}% of attendance`} color="#f59e0b" icon="⏰" />
-              <AnalyticsCard label="At Risk Students" value={analytics.risk_count || 0} sub={analytics.risk_percentage ? `${analytics.risk_percentage}% of roster` : ''} color="#ef4444" icon="⚠️" />
+              <AnalyticsCard label="Total Sessions" value={analytics.total_sessions ?? analytics.weekly_summary?.length ?? 0} color="#3b82f6" icon="📊" />
+              <AnalyticsCard label="Late Arrivals" value={analytics.late_count || 0} color="#f59e0b" icon="⏰" />
+              <AnalyticsCard label="At Risk Students" value={analytics.risk_count || 0} color="#ef4444" icon="⚠️" />
+              <AnalyticsCard label="Attendance Records" value={attendance.length || 0} color="#10b981" icon="✅" />
             </div>
           )}
 
