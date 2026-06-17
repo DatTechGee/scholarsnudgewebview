@@ -455,8 +455,33 @@ export async function createLecturerSessionTemplate(payload, token) {
   return res.data
 }
 
+export async function updateSessionTemplate(templateId, payload, token) {
+  const res = await client.put(`/lecturer/session-templates/${templateId}`, payload, authConfig(token))
+  return res.data
+}
+
 export async function deleteLecturerSessionTemplate(templateId, token) {
   const res = await client.delete(`/lecturer/session-templates/${templateId}`, authConfig(token))
+  return res.data
+}
+
+export async function downloadSessionAttendanceCsv(sessionId, token) {
+  const res = await client.get(`/lecturer/sessions/${sessionId}/attendance/csv`, { ...authConfig(token), responseType: 'blob' })
+  return res.data
+}
+
+export async function downloadCourseAttendanceCsv(courseId, token, params = {}) {
+  const res = await client.get(`/lecturer/courses/${courseId}/attendance/csv`, { ...authConfig(token, { params }), responseType: 'blob' })
+  return res.data
+}
+
+export async function downloadAllAttendanceCsv(token) {
+  const res = await client.get('/lecturer/export/attendance', { ...authConfig(token), responseType: 'blob' })
+  return res.data
+}
+
+export async function downloadCourseRosterCsv(courseId, token) {
+  const res = await client.get(`/lecturer/courses/${courseId}/export/roster`, { ...authConfig(token), responseType: 'blob' })
   return res.data
 }
 
@@ -477,6 +502,44 @@ export async function createLecturerSwapRequest(payload, token) {
 
 export async function respondLecturerSwapRequest(swapId, payload, token) {
   const res = await client.put(`/lecturer/swap-requests/${swapId}`, payload, authConfig(token))
+  return res.data
+}
+
+// ── Messaging ──
+export async function getConversations(token) {
+  const res = await client.get('/messages/conversations', authConfig(token))
+  return res.data
+}
+
+export async function getMessages(userId, token, page = 1) {
+  const res = await client.get(`/messages/${userId}`, authConfig(token, { params: { page } }))
+  return res.data
+}
+
+export async function sendMessage(receiverId, body, token, courseId) {
+  const payload = { receiver_id: receiverId, body }
+  if (courseId) payload.course_id = courseId
+  const res = await client.post('/messages/send', payload, authConfig(token))
+  return res.data
+}
+
+export async function broadcastMessage(courseId, body, token) {
+  const res = await client.post('/messages/broadcast', { course_id: courseId, body }, authConfig(token))
+  return res.data
+}
+
+export async function getUnreadCount(token) {
+  const res = await client.get('/messages/unread-count', authConfig(token))
+  return res.data
+}
+
+export async function searchUsers(q, token) {
+  const res = await client.get('/messages/users/search', authConfig(token, { params: { q } }))
+  return res.data
+}
+
+export async function markMessagesRead(userId, token) {
+  const res = await client.put(`/messages/${userId}/read`, {}, authConfig(token))
   return res.data
 }
 

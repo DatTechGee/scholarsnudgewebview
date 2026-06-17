@@ -7,16 +7,28 @@ import Button from '../../components/shadcn/Button'
 import Input from '../../components/shadcn/Input'
 import Modal from '../../components/shadcn/Modal'
 import { Table, Thead, Th, Tbody, Tr, Td } from '../../components/shadcn/Table'
-import { getCourseSessions, createSession, stopSession, cancelSession, getSessionReport, getLiveSessionFeed, markStudentPresentByMatric, getCourseRoster, addStudentToRoster, removeStudentFromRoster, importRosterCsv } from '../../services/api'
+import { getCourseSessions, createSession, stopSession, cancelSession, getSessionReport, getLiveSessionFeed, markStudentPresentByMatric, getCourseRoster, addStudentToRoster, removeStudentFromRoster, importRosterCsv, updateAttendanceStatus, deleteAttendance } from '../../services/api'
 
 const statusColors = { active: 'success', stopped: 'default', completed: 'info', cancelled: 'danger' }
 
-function AttendanceView({ sessionId, token }) {
+function AttendanceView({ sessionId, token, onRefresh }) {
   const [report, setReport] = useState(null)
-  useEffect(() => {
+  const [actionBusy, setActionBusy] = useState(false)
+  const load = () => {
     if (!sessionId) return
     getSessionReport(sessionId, token).then(r => setReport(r?.data || r || {})).catch(() => setReport({}))
-  }, [sessionId])
+  }
+  useEffect(() => { load() }, [sessionId])
+
+  const doAction = async (attendanceId, status) => {
+    setActionBusy(true)
+    try {
+      if (status === 'delete') await deleteAttendance(attendanceId, token)
+      else await updateAttendanceStatus(attendanceId, status, token)
+      load()
+    } catch (_) {}
+    finally { setActionBusy(false) }
+  }
 
   if (!report) return <p className="text-slate-400 text-sm py-4 text-center">Loading attendance...</p>
   const summary = report.summary || {}
@@ -41,7 +53,7 @@ function AttendanceView({ sessionId, token }) {
       {attendances.length > 0 ? (
         <div className="max-h-72 overflow-auto">
           <Table>
-            <Thead><Tr><Th>Student</Th><Th>Status</Th><Th>Time</Th><Th>Distance</Th><Th>Late</Th></Tr></Thead>
+            <Thead><Tr><Th>Student</Th><Th>Status</Th><Th>Time</Th><Th>Distance</Th><Th>Device</Th><Th>Late</Th><Th></Th></Tr></Thead>
             <Tbody>
               {attendances.map(a => (
                 <Tr key={a.id}>
@@ -49,7 +61,24 @@ function AttendanceView({ sessionId, token }) {
                   <Td><Badge variant={a.status === 'present' || a.status === 'verified' ? 'success' : a.status === 'invalid' ? 'danger' : 'warning'}>{a.status}</Badge></Td>
                   <Td className="text-sm text-slate-500">{a.checked_in_at ? new Date(a.checked_in_at).toLocaleTimeString() : '—'}</Td>
                   <Td className="text-sm text-slate-500">{a.distance_at_checkin ? `${Math.round(a.distance_at_checkin)}m` : '—'}</Td>
+                  <Td className="text-xs font-mono max-w-[100px] truncate text-slate-500" title={a.device_id || ''}>{a.device_id || '—'}</Td>
                   <Td>{a.is_late ? <Badge variant="warning">Yes</Badge> : '—'}</Td>
+                  <Td>
+                    <div className="flex gap-1">
+                      <button onClick={() => doAction(a.id, 'verified')} disabled={actionBusy}
+                        className="p-1 rounded-md text-emerald-500 hover:bg-emerald-50 hover:text-emerald-600 transition-all disabled:opacity-30" title="Verify">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      </button>
+                      <button onClick={() => doAction(a.id, 'invalid')} disabled={actionBusy}
+                        className="p-1 rounded-md text-red-400 hover:bg-red-50 hover:text-red-600 transition-all disabled:opacity-30" title="Mark Invalid">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      </button>
+                      <button onClick={() => { if (window.confirm('Delete this attendance record?')) doAction(a.id, 'delete') }} disabled={actionBusy}
+                        className="p-1 rounded-md text-slate-300 hover:bg-red-50 hover:text-red-500 transition-all disabled:opacity-30" title="Delete">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      </button>
+                    </div>
+                  </Td>
                 </Tr>
               ))}
             </Tbody>
@@ -59,6 +88,7 @@ function AttendanceView({ sessionId, token }) {
     </div>
   )
 }
+
 
 function LiveFeedView({ sessionId, token }) {
   const [feed, setFeed] = useState([])
@@ -95,6 +125,7 @@ function LiveFeedView({ sessionId, token }) {
             <Badge variant={f.distance_at_checkin && f.distance_at_checkin < 50 ? 'success' : 'warning'}>
               {f.distance_at_checkin ? `${Math.round(f.distance_at_checkin)}m` : '—'}
             </Badge>
+            {f.device_id ? <span className="text-[10px] font-mono text-slate-300 max-w-[60px] truncate" title={f.device_id}>📱</span> : null}
           </div>
         </div>
       ))}

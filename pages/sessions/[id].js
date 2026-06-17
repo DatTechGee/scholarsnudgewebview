@@ -161,19 +161,21 @@ export default function SessionDetail() {
                   <Th>Matric</Th>
                   <Th>Status</Th>
                   <Th>Distance</Th>
+                  <Th>Device</Th>
                   <Th>Checked In At</Th>
                   <Th>Late</Th>
                 </Tr>
               </Thead>
               <Tbody>
                 {attendances.length === 0 ? (
-                  <Tr><Td colSpan={6} className="text-center text-slate-400 py-8">No attendance records found.</Td></Tr>
+                  <Tr><Td colSpan={7} className="text-center text-slate-400 py-8">No attendance records found.</Td></Tr>
                 ) : attendances.map(a => (
                   <Tr key={a.id}>
                     <Td className="font-medium">{a.student?.name || a.student_name || `#${a.student_id}`}</Td>
                     <Td className="font-mono text-sm">{a.student?.matric_number || a.matric_number || '—'}</Td>
                     <Td><Badge variant={a.status === 'present' || a.status === 'verified' ? 'success' : a.status === 'invalid' ? 'danger' : 'warning'}>{a.status}</Badge></Td>
                     <Td>{a.distance_at_checkin ? `${Math.round(a.distance_at_checkin)}m` : '—'}</Td>
+                    <Td className="text-xs font-mono max-w-[120px] truncate" title={a.device_id || ''}>{a.device_id || '—'}</Td>
                     <Td className="text-sm">{a.checked_in_at ? new Date(a.checked_in_at).toLocaleString() : '—'}</Td>
                     <Td>{a.is_late ? <Badge variant="warning">Yes</Badge> : '—'}</Td>
                   </Tr>

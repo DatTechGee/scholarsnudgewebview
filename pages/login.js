@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useRouter } from 'next/router'
 import Link from 'next/link'
 import Card from '../components/shadcn/Card'
 import Button from '../components/shadcn/Button'
@@ -7,17 +6,15 @@ import Input from '../components/shadcn/Input'
 import { login } from '../services/api'
 
 export default function Login() {
-  const router = useRouter()
+  const [loginMode, setLoginMode] = useState('email')
   const [credential, setCredential] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
-  const isMatric = credential.includes('/')
-
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!credential || !password) { setError('Email/Matric number and password required.'); return }
+    if (!credential || !password) { setError(`${loginMode === 'email' ? 'Email' : 'Matric number'} and password required.`); return }
     setBusy(true)
     setError('')
     try {
@@ -32,9 +29,9 @@ export default function Login() {
       window.localStorage.setItem('user_name', me.name || 'User')
       window.localStorage.setItem('user_data', JSON.stringify(me))
 
-      if (role === 'admin' || role === 'super_admin') { router.push('/') }
-      else if (role === 'lecturer') { router.push('/lecturer') }
-      else { router.push('/student') }
+      const base = window.location.pathname.startsWith('/school') ? '/school' : ''
+      const dest = role === 'admin' || role === 'super_admin' ? base : role === 'lecturer' ? `${base}/lecturer` : `${base}/student`
+      window.location.href = dest
     } catch (err) {
       const msg = err?.response?.data?.message || err.message || 'Login failed'
       setError(typeof msg === 'string' ? msg : 'Invalid credentials')
@@ -67,19 +64,38 @@ export default function Login() {
         ) : null}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="flex bg-surface-100 rounded-xl p-1 mb-2">
+            <button
+              type="button"
+              onClick={() => { setLoginMode('email'); setCredential(''); setError('') }}
+              className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${loginMode === 'email' ? 'bg-white text-surface-800 shadow-sm' : 'text-surface-500 hover:text-surface-700'}`}
+            >
+              <svg className="w-4 h-4 inline mr-1.5 -mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" /></svg>
+              Email
+            </button>
+            <button
+              type="button"
+              onClick={() => { setLoginMode('matric'); setCredential(''); setError('') }}
+              className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${loginMode === 'matric' ? 'bg-white text-surface-800 shadow-sm' : 'text-surface-500 hover:text-surface-700'}`}
+            >
+              <svg className="w-4 h-4 inline mr-1.5 -mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0" /></svg>
+              Matric
+            </button>
+          </div>
+
           <div>
-            <label className="block text-sm font-bold text-surface-700 mb-1.5">{isMatric ? 'Matric Number' : 'Email'}</label>
+            <label className="block text-sm font-bold text-surface-700 mb-1.5">{loginMode === 'matric' ? 'Matric Number' : 'Email'}</label>
             <div className="relative">
               <div className="absolute left-3.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-xl bg-primary-500/10 flex items-center justify-center">
                 <svg className="w-4 h-4 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isMatric ? 'M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0' : 'M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207'} />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={loginMode === 'matric' ? 'M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0' : 'M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207'} />
                 </svg>
               </div>
               <input
-                type={isMatric ? 'text' : 'email'}
+                type={loginMode === 'matric' ? 'text' : 'email'}
                 value={credential}
                 onChange={(e) => setCredential(e.target.value)}
-                placeholder={isMatric ? 'e.g. CSC/2020/001' : 'you@example.com'}
+                placeholder={loginMode === 'matric' ? 'e.g. CSC/2020/001' : 'you@example.com'}
                 required
                 className="w-full h-[52px] rounded-xl border-2 bg-surface-50/80 pl-12 pr-4 text-sm font-medium text-surface-800 placeholder:text-surface-400 focus:outline-none focus:border-primary-400 focus:bg-white transition-all"
               />
@@ -101,22 +117,12 @@ export default function Login() {
               />
             </div>
           </div>
-          <div className="text-right">
-            <Link href="/forgot-password" className="text-xs font-semibold text-primary-600 hover:text-primary-700">Forgot password?</Link>
-          </div>
           <Button type="submit" className="w-full h-[52px] text-base" disabled={busy}>
             {busy ? (
               <span className="flex items-center gap-2"><svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Signing in...</span>
             ) : 'Sign In'}
           </Button>
         </form>
-
-        <div className="mt-6 text-center">
-          <p className="text-sm text-surface-500 font-medium">
-            Don't have an account?{' '}
-            <Link href="/register" className="text-primary-600 hover:text-primary-700 font-bold">Create one</Link>
-          </p>
-        </div>
 
         <div className="mt-5 flex items-center justify-center gap-2 text-xs text-surface-400">
           <span className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-primary-500/5 border border-primary-200/30 font-medium">
