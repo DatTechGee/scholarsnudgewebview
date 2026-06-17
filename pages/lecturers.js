@@ -7,15 +7,13 @@ import Badge from '../components/shadcn/Badge'
 import Input from '../components/shadcn/Input'
 import Select from '../components/shadcn/Select'
 import { Table, Thead, Th, Tbody, Tr, Td } from '../components/shadcn/Table'
-import { getUsers, createUser, updateUser, deleteUser, getFaculties, getDepartments } from '../services/api'
+import { getUsers, createUser, updateUser, deleteUser } from '../services/api'
 
 const emptyForm = {
   name: '',
   email: '',
   password: '',
   staff_id: '',
-  faculty_id: '',
-  department_id: '',
 }
 
 export default function Lecturers() {
@@ -23,8 +21,6 @@ export default function Lecturers() {
   const [query, setQuery] = useState('')
   const [users, setUsers] = useState([])
   const [meta, setMeta] = useState({ current_page: 1, last_page: 1, total: 0 })
-  const [faculties, setFaculties] = useState([])
-  const [departments, setDepartments] = useState([])
   const [editingUser, setEditingUser] = useState(null)
   const [form, setForm] = useState(emptyForm)
   const [showForm, setShowForm] = useState(false)
@@ -45,16 +41,6 @@ export default function Lecturers() {
     if (!tokenInput.trim()) return
     window.localStorage.setItem('admin_token', tokenInput.trim())
   }, [tokenInput])
-
-  useEffect(() => {
-    if (!token) return
-    getFaculties(token).then(d => setFaculties(Array.isArray(d) ? d : d?.data || [])).catch(() => {})
-  }, [token])
-
-  useEffect(() => {
-    if (!token || !form.faculty_id) { setDepartments([]); return }
-    getDepartments(token, form.faculty_id).then(d => setDepartments(Array.isArray(d) ? d : d?.data || [])).catch(() => setDepartments([]))
-  }, [token, form.faculty_id])
 
   const loadLecturers = async (page = 1) => {
     setLoading(true); setError('')
@@ -80,8 +66,6 @@ export default function Lecturers() {
       email: user.email || '',
       password: '',
       staff_id: user.staff_id || '',
-      faculty_id: user.faculty_id ? String(user.faculty_id) : '',
-      department_id: user.department_id ? String(user.department_id) : '',
     })
     setShowForm(true)
   }
@@ -93,10 +77,6 @@ export default function Lecturers() {
       setError('Name, email, and staff ID are required.')
       return
     }
-    if (!form.faculty_id) {
-      setError('Faculty is required.')
-      return
-    }
     setBusy(true); setError(''); setMessage('')
     try {
       const payload = {
@@ -105,8 +85,6 @@ export default function Lecturers() {
         email: form.email,
         password: form.password || undefined,
         staff_id: form.staff_id,
-        faculty_id: Number(form.faculty_id),
-        department_id: form.department_id ? Number(form.department_id) : null,
       }
       if (editingUser) {
         await updateUser(editingUser.id, payload, token)
@@ -181,14 +159,6 @@ export default function Lecturers() {
             <div>
               <label className="block text-sm font-medium text-surface-700 mb-1.5">Staff ID <span className="text-red-400">*</span></label>
               <Input value={form.staff_id} onChange={(event) => handleFormChange('staff_id', event.target.value)} placeholder="Staff ID" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-surface-700 mb-1.5">Faculty <span className="text-red-400">*</span></label>
-              <Select options={faculties.map(f => ({ value: String(f.id), label: f.name }))} value={form.faculty_id} onChange={(v) => { handleFormChange('faculty_id', v); handleFormChange('department_id', '') }} placeholder="Select faculty" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-surface-700 mb-1.5">Department</label>
-              <Select options={departments.map(d => ({ value: String(d.id), label: d.name }))} value={form.department_id} onChange={(v) => handleFormChange('department_id', v)} placeholder={form.faculty_id ? 'Select department' : 'Select faculty first'} />
             </div>
           </div>
           <div className="mt-6 flex gap-3">

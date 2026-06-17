@@ -65,7 +65,7 @@ export default function LecturerExports() {
         getCourseAttendance(courseId, token).catch(() => null),
         getCourseAnalytics(courseId, token).catch(() => null),
       ])
-      setCourseData({ attendance: Array.isArray(att?.data) ? att.data : Array.isArray(att) ? att : [], analytics: an?.data || an || null })
+      setCourseData({ attendance: Array.isArray(att?.records) ? att.records : Array.isArray(att?.data) ? att.data : Array.isArray(att) ? att : [], analytics: an?.data || an || null })
     } catch (_) {}
   }
 
@@ -121,7 +121,7 @@ export default function LecturerExports() {
       for (const c of courses) {
         try {
           const data = await getCourseAttendance(c.id, token)
-          const att = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : []
+          const att = Array.isArray(data?.records) ? data.records : Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : []
           att.forEach(a => allRows.push([c.code || c.id, a.student?.name || '', a.status || '', a.checked_in_at || '']))
         } catch (_) {}
       }

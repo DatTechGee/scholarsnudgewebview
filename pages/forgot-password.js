@@ -16,9 +16,9 @@ export default function ForgotPassword() {
     setBusy(true); setError(''); setSuccess('')
     try {
       const res = await forgotPassword(email)
-      setSuccess(res?.message || 'Password reset link sent to your email.')
+      setSuccess(res?.message || 'A 6-digit reset code has been sent to your email.')
     } catch (err) {
-      setError(err?.response?.data?.message || err.message || 'Failed to send reset link.')
+      setError(err?.response?.data?.message || err.message || 'Failed to send reset code.')
     } finally { setBusy(false) }
   }
 
@@ -34,7 +34,7 @@ export default function ForgotPassword() {
             <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
           </div>
           <h1 className="text-heading2 text-surface-800">Forgot Password?</h1>
-          <p className="text-surface-500 mt-1.5 text-sm font-medium">Enter your email and we'll send you a reset link</p>
+          <p className="text-surface-500 mt-1.5 text-sm font-medium">Enter your email and we'll send you a 6-digit reset code</p>
         </div>
 
         {error ? (
@@ -63,7 +63,7 @@ export default function ForgotPassword() {
             </div>
           </div>
           <Button type="submit" className="w-full h-[52px] text-base" disabled={busy}>
-            {busy ? 'Sending...' : 'Send Reset Link'}
+            {busy ? 'Sending...' : 'Send Reset Code'}
           </Button>
         </form>
 

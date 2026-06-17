@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import Layout from '../../components/Layout'
 import Card from '../../components/shadcn/Card'
@@ -32,14 +32,9 @@ export default function LecturerDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    const t = window.localStorage.getItem('admin_token') || ''
-    if (!t) { setLoading(false); return }
-    loadData(t)
-  }, [])
-
-  const loadData = async (t) => {
-    setLoading(true); setError('')
+  const loadData = useCallback(async (t) => {
+    if (!t) return
+    setError('')
     try {
       const [c, s] = await Promise.all([
         getLecturerCourses(t).catch(() => null),
@@ -49,7 +44,15 @@ export default function LecturerDashboard() {
       setShared(Array.isArray(s?.data) ? s.data : Array.isArray(s) ? s : [])
     } catch (_) { setError('Failed to load data.') }
     finally { setLoading(false) }
-  }
+  }, [])
+
+  useEffect(() => {
+    const t = window.localStorage.getItem('admin_token') || ''
+    if (!t) { setLoading(false); return }
+    loadData(t)
+    const iv = setInterval(() => loadData(t), 30000)
+    return () => clearInterval(iv)
+  }, [loadData])
 
   const activeSessions = courses.filter(c => c.active_session)
   const totalStudents = courses.reduce((sum, c) => sum + (c.roster_count || 0), 0)

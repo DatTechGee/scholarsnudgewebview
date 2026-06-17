@@ -5,7 +5,7 @@ import Card from '../../components/shadcn/Card'
 import Badge from '../../components/shadcn/Badge'
 import Button from '../../components/shadcn/Button'
 import { Table, Thead, Th, Tbody, Tr, Td } from '../../components/shadcn/Table'
-import { getAdminSessionDetail, getAdminSessionAttendances } from '../../services/api'
+import { getAdminSessionDetail, getAdminSessionAttendances, stopSession, cancelSession } from '../../services/api'
 
 const statusColors = { active: 'success', stopped: 'default', completed: 'info', cancelled: 'danger' }
 
@@ -82,14 +82,28 @@ export default function SessionDetail() {
 
   return (
     <Layout>
-      <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-6">
         <div>
           <Button variant="ghost" onClick={() => router.push('/sessions')} className="mb-2">&larr; Back to Sessions</Button>
           <h1 className="text-2xl font-bold">Session #{session?.id || ''}</h1>
         </div>
-        <Button variant="ghost" onClick={() => loadData(meta.current_page)} disabled={loading}>
-          {loading ? 'Loading...' : 'Refresh'}
-        </Button>
+        <div className="flex gap-2">
+          {session?.status === 'active' ? (
+            <>
+              <Button variant="default" className="bg-amber-600 hover:bg-amber-700" onClick={async () => {
+                if (!window.confirm('Stop this session?')) return
+                try { await stopSession(session.id, token); await loadData() } catch {}
+              }}>Stop</Button>
+              <Button variant="outline" className="text-red-600 border-red-300 hover:bg-red-50" onClick={async () => {
+                if (!window.confirm('Cancel this session?')) return
+                try { await cancelSession(session.id, token); await loadData() } catch {}
+              }}>Cancel</Button>
+            </>
+          ) : null}
+          <Button variant="ghost" onClick={() => loadData(meta.current_page)} disabled={loading}>
+            {loading ? 'Loading...' : 'Refresh'}
+          </Button>
+        </div>
       </div>
 
       {error ? (

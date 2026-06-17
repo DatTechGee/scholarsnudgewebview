@@ -98,7 +98,7 @@ function LiveFeedView({ sessionId, token }) {
     if (!sessionId) return
     try {
       const d = await getLiveSessionFeed(sessionId, token)
-      setFeed(Array.isArray(d?.data) ? d.data : Array.isArray(d) ? d : [])
+      setFeed(Array.isArray(d?.records) ? d.records : Array.isArray(d?.data) ? d.data : Array.isArray(d) ? d : [])
     } catch (_) {}
     finally { setLoading(false) }
   }, [sessionId, token])

@@ -5,8 +5,9 @@ import Card from '../../components/shadcn/Card'
 import Badge from '../../components/shadcn/Badge'
 import Button from '../../components/shadcn/Button'
 import Input from '../../components/shadcn/Input'
+import Modal from '../../components/shadcn/Modal'
 import { Table, Thead, Th, Tbody, Tr, Td } from '../../components/shadcn/Table'
-import { getAdminUser, getAdminLecturerCourses, getAdminLecturerSessions, getAdminLecturerAttendanceSummary } from '../../services/api'
+import { getAdminUser, getAdminLecturerCourses, getAdminLecturerSessions, getAdminLecturerAttendanceSummary, getCourseRoster, addStudentToRoster, removeStudentFromRoster, importRosterCsv, downloadCourseRosterCsv } from '../../services/api'
 
 const statusColors = { active: 'success', stopped: 'default', completed: 'info', cancelled: 'danger' }
 
@@ -42,6 +43,17 @@ export default function LecturerDetail() {
   const [sessionsMeta, setSessionsMeta] = useState({ current_page: 1, last_page: 1, total: 0 })
   const [sessionsPage, setSessionsPage] = useState(1)
   const [sessionsLoading, setSessionsLoading] = useState(false)
+
+  // Roster modal state
+  const [rosterCourse, setRosterCourse] = useState(null)
+  const [rosterData, setRosterData] = useState([])
+  const [rosterLoading, setRosterLoading] = useState(false)
+  const [showRosterModal, setShowRosterModal] = useState(false)
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [rosterMatric, setRosterMatric] = useState('')
+  const [rosterName, setRosterName] = useState('')
+  const [rosterFile, setRosterFile] = useState(null)
+  const [rosterBusy, setRosterBusy] = useState(false)
 
   useEffect(() => {
     const t = window.localStorage.getItem('admin_token') || ''
@@ -89,6 +101,53 @@ export default function LecturerDetail() {
 
   useEffect(() => { if (token && id) loadData(token) }, [token, id])
   useEffect(() => { if (token && id) loadSessions(sessionsPage) }, [token, id, sessionsPage])
+
+  // Roster modal handlers
+  const openRosterModal = async (course) => {
+    setRosterCourse(course)
+    setShowRosterModal(true)
+    setRosterLoading(true); setError('')
+    try {
+      const data = await getCourseRoster(course.id, token)
+      setRosterData(Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [])
+    } catch (_) { setRosterData([]); setError('Failed to load roster.') }
+    finally { setRosterLoading(false) }
+  }
+
+  const handleAddStudent = async () => {
+    if (!rosterMatric.trim() || !rosterCourse) return
+    setRosterBusy(true); setError('')
+    try {
+      await addStudentToRoster(rosterCourse.id, rosterMatric.trim().toUpperCase(), rosterName.trim(), token)
+      setRosterMatric(''); setRosterName(''); setShowAddForm(false)
+      const data = await getCourseRoster(rosterCourse.id, token)
+      setRosterData(Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [])
+    } catch (err) { setError(err?.response?.data?.message || 'Failed to add student.') }
+    finally { setRosterBusy(false) }
+  }
+
+  const handleRemoveStudent = async (matric) => {
+    if (!window.confirm(`Remove student ${matric} from roster?`) || !rosterCourse) return
+    setRosterBusy(true); setError('')
+    try {
+      await removeStudentFromRoster(rosterCourse.id, matric, token)
+      const data = await getCourseRoster(rosterCourse.id, token)
+      setRosterData(Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [])
+    } catch (err) { setError(err?.response?.data?.message || 'Failed to remove student.') }
+    finally { setRosterBusy(false) }
+  }
+
+  const handleImportRoster = async () => {
+    if (!rosterFile || !rosterCourse) { setError('Select a CSV file first.'); return }
+    setRosterBusy(true); setError('')
+    try {
+      await importRosterCsv(rosterCourse.id, rosterFile, token)
+      setRosterFile(null)
+      const data = await getCourseRoster(rosterCourse.id, token)
+      setRosterData(Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [])
+    } catch (err) { setError(err?.response?.data?.message || 'CSV import failed.') }
+    finally { setRosterBusy(false) }
+  }
 
   return (
     <Layout>
@@ -152,24 +211,95 @@ export default function LecturerDetail() {
             <Card className="p-8 text-center text-slate-400 mb-6">No courses assigned.</Card>
           ) : (
             <Card className="p-0 mb-6">
-              <Table>
-                <Thead>
-                  <Tr><Th>Code</Th><Th>Title</Th><Th>Sessions</Th><Th>Students</Th><Th>Status</Th></Tr>
-                </Thead>
-                <Tbody>
-                  {courses.map(c => (
-                    <Tr key={c.id} className="cursor-pointer hover:bg-slate-50" onClick={() => router.push(`/courses/${c.id}`)}>
-                      <Td className="font-mono font-medium">{c.code}</Td>
-                      <Td>{c.title}</Td>
-                      <Td>{c.sessions_count ?? c.session_count ?? '—'}</Td>
-                      <Td>{c.roster_count || 0}</Td>
-                      <Td>{c.active_session ? <Badge variant="success">Active</Badge> : <Badge variant="default">Inactive</Badge>}</Td>
-                    </Tr>
-                  ))}
-                </Tbody>
-              </Table>
+              <div className="overflow-x-auto">
+                <Table>
+                  <Thead>
+                    <Tr><Th>Code</Th><Th>Title</Th><Th>Sessions</Th><Th>Students</Th><Th>Status</Th><Th></Th></Tr>
+                  </Thead>
+                  <Tbody>
+                    {courses.map(c => (
+                      <Tr key={c.id}>
+                        <Td className="font-mono font-medium cursor-pointer hover:text-primary-600" onClick={() => router.push(`/courses/${c.id}`)}>{c.code}</Td>
+                        <Td>{c.title}</Td>
+                        <Td>{c.sessions_count ?? c.session_count ?? '—'}</Td>
+                        <Td>{c.roster_count || 0}</Td>
+                        <Td>{c.active_session ? <Badge variant="success">Active</Badge> : <Badge variant="default">Inactive</Badge>}</Td>
+                        <Td>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="sm" onClick={() => router.push(`/courses/${c.id}`)}>View</Button>
+                            <Button variant="outline" size="sm" onClick={() => openRosterModal(c)}>Roster</Button>
+                          </div>
+                        </Td>
+                      </Tr>
+                    ))}
+                  </Tbody>
+                </Table>
+              </div>
             </Card>
           )}
+
+          {/* Roster Modal */}
+          <Modal open={showRosterModal} onClose={() => { setShowRosterModal(false); setShowAddForm(false) }}>
+            <div className="p-6 w-full max-w-lg">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-800">Roster: {rosterCourse?.code}</h3>
+                  <p className="text-sm text-slate-500">{rosterCourse?.title} — {rosterData.length} student{rosterData.length !== 1 ? 's' : ''}</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => downloadCourseRosterCsv(rosterCourse?.id, token).catch(() => setError('Export failed'))}>Export CSV</Button>
+                  <Button variant="outline" size="sm" onClick={() => setShowAddForm(true)}>Add</Button>
+                </div>
+              </div>
+
+              {/* CSV Import */}
+              <Card className="mb-4 p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <input type="file" accept=".csv" onChange={(e) => setRosterFile(e.target.files?.[0] || null)} className="flex-1 rounded border border-slate-200 px-2 py-1.5 text-sm" />
+                  <Button size="sm" onClick={handleImportRoster} disabled={rosterBusy || !rosterFile}>Import CSV</Button>
+                </div>
+              </Card>
+
+              {/* Add Student Form */}
+              {showAddForm && (
+                <Card className="mb-4 p-3">
+                  <div className="space-y-2">
+                    <Input value={rosterMatric} onChange={(e) => setRosterMatric(e.target.value)} placeholder="Matric Number *" />
+                    <Input value={rosterName} onChange={(e) => setRosterName(e.target.value)} placeholder="Student Name (optional)" />
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={handleAddStudent} disabled={!rosterMatric.trim() || rosterBusy}>Add</Button>
+                      <Button variant="ghost" size="sm" onClick={() => setShowAddForm(false)}>Cancel</Button>
+                    </div>
+                  </div>
+                </Card>
+              )}
+
+              {rosterLoading ? (
+                <div className="py-8 text-center text-slate-400">Loading roster...</div>
+              ) : rosterData.length === 0 ? (
+                <div className="py-8 text-center text-slate-400">
+                  <p className="mb-1">No students in roster.</p>
+                  <p className="text-xs">Add manually or import CSV.</p>
+                </div>
+              ) : (
+                <div className="max-h-72 overflow-y-auto">
+                  <Table>
+                    <Thead><Tr><Th>#</Th><Th>Matric</Th><Th>Name</Th><Th></Th></Tr></Thead>
+                    <Tbody>
+                      {rosterData.map((r, i) => (
+                        <Tr key={r.id || i}>
+                          <Td className="text-sm text-slate-400">{i + 1}</Td>
+                          <Td className="font-mono text-sm">{r.matric_number}</Td>
+                          <Td className="text-sm">{r.student?.name || r.student_name || '—'}</Td>
+                          <Td><Button variant="destructive" size="sm" onClick={() => handleRemoveStudent(r.matric_number)} disabled={rosterBusy}>Remove</Button></Td>
+                        </Tr>
+                      ))}
+                    </Tbody>
+                  </Table>
+                </div>
+              )}
+            </div>
+          </Modal>
 
           {/* Sessions Section */}
           <h2 className="text-lg font-semibold mb-3">Sessions</h2>
@@ -179,22 +309,24 @@ export default function LecturerDetail() {
             <Card className="p-8 text-center text-slate-400 mb-6">No sessions found.</Card>
           ) : (
             <Card className="p-0 mb-6">
-              <Table>
-                <Thead>
-                  <Tr><Th>ID</Th><Th>Course</Th><Th>Status</Th><Th>Started</Th><Th>Attendance</Th></Tr>
-                </Thead>
-                <Tbody>
-                  {sessions.map(s => (
-                    <Tr key={s.id} className="cursor-pointer hover:bg-slate-50" onClick={() => router.push(`/sessions/${s.id}`)}>
-                      <Td className="font-mono text-sm">#{s.id}</Td>
-                      <Td className="font-medium">{s.course?.code || '—'}</Td>
-                      <Td><Badge variant={statusColors[s.status] || 'default'}>{s.status}</Badge></Td>
-                      <Td className="text-sm">{s.starts_at ? new Date(s.starts_at).toLocaleDateString() : '—'}</Td>
-                      <Td>{s.attendance_count ?? '—'}/{s.expected_count ?? '—'}</Td>
-                    </Tr>
-                  ))}
-                </Tbody>
-              </Table>
+              <div className="overflow-x-auto">
+                <Table>
+                  <Thead>
+                    <Tr><Th>ID</Th><Th>Course</Th><Th>Status</Th><Th>Started</Th><Th>Attendance</Th></Tr>
+                  </Thead>
+                  <Tbody>
+                    {sessions.map(s => (
+                      <Tr key={s.id} className="cursor-pointer hover:bg-slate-50" onClick={() => router.push(`/sessions/${s.id}`)}>
+                        <Td className="font-mono text-sm">#{s.id}</Td>
+                        <Td className="font-medium">{s.course?.code || '—'}</Td>
+                        <Td><Badge variant={statusColors[s.status] || 'default'}>{s.status}</Badge></Td>
+                        <Td className="text-sm">{s.starts_at ? new Date(s.starts_at).toLocaleDateString() : '—'}</Td>
+                        <Td>{s.attendance_count ?? '—'}/{s.expected_count ?? '—'}</Td>
+                      </Tr>
+                    ))}
+                  </Tbody>
+                </Table>
+              </div>
             </Card>
           )}
           {sessionsMeta.last_page > 1 && (

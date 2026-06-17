@@ -47,7 +47,13 @@ export default function StudentAttendance() {
       ])
 
       if (historyData) {
-        const rows = Array.isArray(historyData.data) ? historyData.data : Array.isArray(historyData) ? historyData : []
+        let rows = Array.isArray(historyData.data) ? historyData.data : []
+        if (!rows.length && historyData?.courses) {
+          rows = historyData.courses.flatMap(c => c.timeline || [])
+        }
+        if (!rows.length && Array.isArray(historyData)) {
+          rows = historyData
+        }
         setRecords(rows)
         setMeta({
           current_page: historyData.current_page || 1,
@@ -91,7 +97,7 @@ export default function StudentAttendance() {
   }
 
   const courses = useMemo(() => {
-    const list = report?.courses || report?.course_breakdown || []
+    const list = report?.report || report?.courses || report?.course_breakdown || []
     return list.map((c) => ({
       value: String(c.id || c.course_id || ''),
       label: `${c.code || c.course_code || 'Unknown'} — ${c.title || c.course_name || ''}`,
@@ -115,6 +121,27 @@ export default function StudentAttendance() {
     }
   }, [records])
 
+  const exportCsv = () => {
+    const headers = ['Date', 'Course Code', 'Session ID', 'Status', 'Checked In At', 'Distance (m)', 'Late']
+    const rows = records.map(r => [
+      r.session?.start_time || r.created_at || r.checked_in_at
+        ? new Date(r.session?.start_time || r.created_at || r.checked_in_at).toLocaleDateString() : '',
+      r.course?.code || r.course_code || '',
+      r.session_id || r.attendance_session_id || '',
+      r.status || '',
+      r.checked_in_at ? new Date(r.checked_in_at).toLocaleString() : '',
+      r.distance_at_checkin != null ? Math.round(r.distance_at_checkin) : r.distance != null ? Number(r.distance).toFixed(1) : '',
+      r.is_late != null ? (r.is_late ? 'Yes' : 'No') : r.late != null ? (r.late ? 'Yes' : 'No') : '',
+    ])
+    const csv = [headers.join(','), ...rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `attendance-history-${new Date().toISOString().slice(0, 10)}.csv`
+    link.click()
+    URL.revokeObjectURL(link.href)
+  }
+
   return (
     <Layout>
       <div className="flex items-center justify-between mb-6">
@@ -122,9 +149,14 @@ export default function StudentAttendance() {
           <h1 className="text-2xl font-bold text-slate-800">Attendance History</h1>
           <p className="text-slate-500 text-sm">View your complete attendance records</p>
         </div>
-        <Button variant="ghost" onClick={() => loadPage(meta.current_page)} disabled={loading}>
-          {loading ? 'Loading...' : 'Refresh'}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={exportCsv} disabled={!records.length || loading}>
+            Export CSV
+          </Button>
+          <Button variant="ghost" onClick={() => loadPage(meta.current_page)} disabled={loading}>
+            {loading ? 'Loading...' : 'Refresh'}
+          </Button>
+        </div>
       </div>
 
       {error ? (

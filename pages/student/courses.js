@@ -29,11 +29,11 @@ export default function StudentCourses() {
       setError('')
       try {
         const data = await getStudentAttendanceReport(token)
-        const rows = Array.isArray(data?.courses) ? data.courses : Array.isArray(data) ? data : []
+        const rows = Array.isArray(data?.report) ? data.report : Array.isArray(data?.courses) ? data.courses : Array.isArray(data) ? data : []
         setCourses(rows)
         setSummary({
-          total_courses: data?.total_courses ?? rows.length,
-          overall_average: data?.overall_average ?? 0,
+          total_courses: data?.summary?.total_courses ?? data?.total_courses ?? rows.length,
+          overall_average: data?.summary?.overall_attendance_percentage ?? data?.overall_average ?? 0,
         })
       } catch (err) {
         setError('Failed to load attendance report.')

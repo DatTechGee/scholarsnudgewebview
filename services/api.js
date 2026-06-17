@@ -23,8 +23,13 @@ function authConfig(token, extra = {}) {
 
 // ── Auth ──
 export async function login(credential, password) {
-  const payload = credential.includes('@') ? { email: credential } : { matric_number: credential }
-  payload.password = password
+  const payload = { password }
+  if (credential.includes('@')) {
+    payload.email = credential
+  } else {
+    payload.matric_number = credential
+    payload.staff_id = credential
+  }
   const res = await client.post('/auth/login', payload)
   return res.data
 }
@@ -429,6 +434,24 @@ export async function getStudentAttendanceReport(token) {
   return res.data
 }
 
+export async function checkInAttendance(sessionId, payload, token) {
+  const fd = new FormData()
+  if (payload.faceImage) fd.append('face', payload.faceImage, 'face.jpg')
+  if (payload.latitude != null) fd.append('latitude', String(payload.latitude))
+  if (payload.longitude != null) fd.append('longitude', String(payload.longitude))
+  if (payload.accuracy != null) fd.append('accuracy', String(payload.accuracy))
+  if (payload.integrity_hash) fd.append('integrity_hash', payload.integrity_hash)
+  const res = await client.post(`/student/sessions/${sessionId}/check-in`, fd, authConfig(token, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }))
+  return res.data
+}
+
+export async function checkOutAttendance(sessionId, token) {
+  const res = await client.post(`/student/sessions/${sessionId}/check-out`, {}, authConfig(token))
+  return res.data
+}
+
 export async function getStudentCourseAttendanceReport(courseId, token) {
   const res = await client.get(`/reports/attendance/course/${courseId}`, authConfig(token))
   return res.data
@@ -436,6 +459,11 @@ export async function getStudentCourseAttendanceReport(courseId, token) {
 
 export async function getStudentFaceStatus(token) {
   const res = await client.get('/student/face/status', authConfig(token))
+  return res.data
+}
+
+export async function getAttendanceCertificate(courseId, token) {
+  const res = await client.get(`/student/courses/${courseId}/certificate`, authConfig(token))
   return res.data
 }
 
@@ -540,6 +568,28 @@ export async function searchUsers(q, token) {
 
 export async function markMessagesRead(userId, token) {
   const res = await client.put(`/messages/${userId}/read`, {}, authConfig(token))
+  return res.data
+}
+
+// ── Admin Verification ──
+export async function verifyUser(userId, payload, token) {
+  const res = await client.put(`/admin/users/${userId}/verify`, payload, authConfig(token))
+  return res.data
+}
+
+export async function getApprovedMatrics(token) {
+  const res = await client.get('/admin/approved-matrics', authConfig(token))
+  return res.data
+}
+
+export async function addApprovedMatric(matricNumber, token) {
+  const res = await client.post('/admin/approved-matrics', { matric_number: matricNumber }, authConfig(token))
+  return res.data
+}
+
+// ── Admin Broadcast ──
+export async function adminBroadcast(role, body, token) {
+  const res = await client.post('/admin/messages/broadcast', { role, body }, authConfig(token))
   return res.data
 }
 

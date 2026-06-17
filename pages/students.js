@@ -8,15 +8,13 @@ import Input from '../components/shadcn/Input'
 import Select from '../components/shadcn/Select'
 import Modal from '../components/shadcn/Modal'
 import { Table, Thead, Th, Tbody, Tr, Td } from '../components/shadcn/Table'
-import { createUser, deleteUser, getLevels, getUsers, updateUser, getFaculties, getDepartments } from '../services/api'
+import { createUser, deleteUser, getLevels, getUsers, updateUser } from '../services/api'
 
 const emptyForm = {
   role: 'student',
   name: '',
   email: '',
   password: '',
-  faculty_id: '',
-  department_id: '',
   academic_level_id: '',
   matric_number: '',
 }
@@ -27,8 +25,6 @@ export default function Students() {
   const [query, setQuery] = useState('')
   const [students, setStudents] = useState([])
   const [meta, setMeta] = useState({ current_page: 1, last_page: 1, total: 0 })
-  const [faculties, setFaculties] = useState([])
-  const [departments, setDepartments] = useState([])
   const [levels, setLevels] = useState([])
   const [editingStudent, setEditingStudent] = useState(null)
   const [form, setForm] = useState(emptyForm)
@@ -48,16 +44,8 @@ export default function Students() {
 
   useEffect(() => {
     if (!token) return
-    Promise.all([
-      getFaculties(token).then(d => setFaculties(Array.isArray(d) ? d : d?.data || [])).catch(() => {}),
-      getLevels(token).then(d => setLevels(Array.isArray(d) ? d : d?.data || [])).catch(() => {}),
-    ])
+    getLevels(token).then(d => setLevels(Array.isArray(d) ? d : d?.data || [])).catch(() => {})
   }, [token])
-
-  useEffect(() => {
-    if (!token || !form.faculty_id) { setDepartments([]); return }
-    getDepartments(token, form.faculty_id).then(d => setDepartments(Array.isArray(d) ? d : d?.data || [])).catch(() => setDepartments([]))
-  }, [token, form.faculty_id])
 
   const loadStudents = async (page = 1) => {
     setLoading(true); setError('')
@@ -83,8 +71,6 @@ export default function Students() {
       name: student.name || '',
       email: student.email || '',
       password: '',
-      faculty_id: student.faculty_id ? String(student.faculty_id) : '',
-      department_id: student.department_id ? String(student.department_id) : '',
       academic_level_id: student.academic_level_id ? String(student.academic_level_id) : '',
       matric_number: student.matric_number || '',
     })
@@ -95,8 +81,6 @@ export default function Students() {
 
   const handleSubmit = async () => {
     if (!form.name || !form.email) { setError('Name and email are required.'); return }
-    if (!form.faculty_id) { setError('Faculty is required.'); return }
-    if (!form.department_id) { setError('Department is required.'); return }
     if (!form.academic_level_id) { setError('Level is required.'); return }
     if (!form.matric_number) { setError('Matric number is required.'); return }
     setBusy(true); setError(''); setMessage('')
@@ -106,8 +90,6 @@ export default function Students() {
         name: form.name,
         email: form.email,
         password: form.password || undefined,
-        faculty_id: Number(form.faculty_id),
-        department_id: Number(form.department_id),
         academic_level_id: Number(form.academic_level_id),
         matric_number: form.matric_number,
       }
@@ -166,14 +148,6 @@ export default function Students() {
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">{editingStudent ? 'New Password (optional)' : 'Password'}</label>
             <Input value={form.password} onChange={(event) => handleFormChange('password', event.target.value)} placeholder={editingStudent ? 'Leave blank to keep current' : 'Password (optional)'} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Faculty <span className="text-red-400">*</span></label>
-            <Select options={faculties.map(f => ({ value: String(f.id), label: f.name }))} value={form.faculty_id} onChange={(v) => { handleFormChange('faculty_id', v); handleFormChange('department_id', '') }} placeholder="Select faculty" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Department <span className="text-red-400">*</span></label>
-            <Select options={departments.map(d => ({ value: String(d.id), label: d.name }))} value={form.department_id} onChange={(v) => handleFormChange('department_id', v)} placeholder={form.faculty_id ? 'Select department' : 'Select faculty first'} />
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Level <span className="text-red-400">*</span></label>

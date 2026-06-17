@@ -38,6 +38,12 @@ export default function StudentFaceRegister() {
     }
   }, [])
 
+  useEffect(() => {
+    if (cameraStream && videoRef.current) {
+      videoRef.current.srcObject = cameraStream
+    }
+  }, [cameraStream])
+
   const startCamera = useCallback(async () => {
     setError('')
     setVideoReady(false)
@@ -47,7 +53,6 @@ export default function StudentFaceRegister() {
       })
       setCameraStream(stream)
       setShowCamera(true)
-      if (videoRef.current) videoRef.current.srcObject = stream
     } catch {
       setError('Camera access denied.')
     }
@@ -67,11 +72,10 @@ export default function StudentFaceRegister() {
     canvas.height = video.videoHeight || 480
     const ctx = canvas.getContext('2d')
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+    setFacePreview(canvas.toDataURL('image/jpeg', 0.9))
     canvas.toBlob((blob) => {
       if (blob) {
-        const file = new File([blob], 'face.jpg', { type: 'image/jpeg' })
-        setFaceImage(file)
-        setFacePreview(URL.createObjectURL(blob))
+        setFaceImage(new File([blob], 'face.jpg', { type: 'image/jpeg' }))
       }
     }, 'image/jpeg', 0.9)
     stopCamera()

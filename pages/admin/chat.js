@@ -4,7 +4,8 @@ import Card from '../../components/shadcn/Card'
 import Badge from '../../components/shadcn/Badge'
 import Button from '../../components/shadcn/Button'
 import Input from '../../components/shadcn/Input'
-import { getConversations, getMessages, sendMessage, getUnreadCount, markMessagesRead, searchUsers } from '../../services/api'
+import Modal from '../../components/shadcn/Modal'
+import { getConversations, getMessages, sendMessage, getUnreadCount, markMessagesRead, searchUsers, adminBroadcast } from '../../services/api'
 
 function formatTime(ts) {
   if (!ts) return ''
@@ -15,7 +16,7 @@ function formatTime(ts) {
   return d.toLocaleDateString([], { month: 'short', day: 'numeric' })
 }
 
-export default function StudentChat() {
+export default function AdminChat() {
   const [token, setToken] = useState('')
   const [conversations, setConversations] = useState([])
   const [activeConv, setActiveConv] = useState(null)
@@ -28,6 +29,10 @@ export default function StudentChat() {
   const [searchResults, setSearchResults] = useState([])
   const [searching, setSearching] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [showBroadcast, setShowBroadcast] = useState(false)
+  const [broadcastRole, setBroadcastRole] = useState('student')
+  const [broadcastBody, setBroadcastBody] = useState('')
+  const [broadcastBusy, setBroadcastBusy] = useState(false)
   const messagesEndRef = useRef(null)
 
   const getToken = useCallback(() => {
@@ -123,6 +128,18 @@ export default function StudentChat() {
     } catch (e) { console.warn('Failed:', e) }
   }
 
+  const handleBroadcast = async () => {
+    if (!broadcastBody.trim()) return
+    setBroadcastBusy(true)
+    try {
+      await adminBroadcast(broadcastRole, broadcastBody.trim(), token)
+      setBroadcastBody('')
+      setShowBroadcast(false)
+      setUnread(prev => prev + 1)
+    } catch (e) { console.warn('Broadcast failed:', e) }
+    finally { setBroadcastBusy(false) }
+  }
+
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
   }
@@ -141,9 +158,14 @@ export default function StudentChat() {
               <h2 className="font-bold text-slate-800 text-sm">Messages</h2>
               {unread > 0 && <Badge variant="danger" className="text-[10px]">{unread}</Badge>}
             </div>
-            <button onClick={() => setShowNewChat(!showNewChat)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-primary-600 transition-all">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-            </button>
+            <div className="flex gap-1">
+              <button onClick={() => setShowBroadcast(true)} className="p-1.5 rounded-lg hover:bg-amber-50 text-slate-400 hover:text-amber-600 transition-all" title="Broadcast">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
+              </button>
+              <button onClick={() => setShowNewChat(!showNewChat)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-primary-600 transition-all">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+              </button>
+            </div>
           </div>
 
           {showNewChat && (
@@ -152,7 +174,7 @@ export default function StudentChat() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => handleSearch(e.target.value)}
-                placeholder="Search lecturers..."
+                placeholder="Search users..."
                 className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-primary-400"
               />
               {searching ? (
@@ -192,7 +214,7 @@ export default function StudentChat() {
                   <svg className="w-6 h-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                 </div>
                 <p className="text-sm text-slate-500 font-medium">No conversations</p>
-                <p className="text-xs text-slate-400 mt-1">Tap + to message your lecturer</p>
+                <p className="text-xs text-slate-400 mt-1">Search for a user or broadcast a message</p>
               </div>
             ) : (
               conversations.map(conv => (
@@ -210,7 +232,7 @@ export default function StudentChat() {
                       {conv.last_message_at && <span className="text-[10px] text-slate-400 shrink-0">{formatTime(conv.last_message_at)}</span>}
                     </div>
                     <div className="flex items-center justify-between mt-0.5">
-                      <span className="text-xs text-slate-500 truncate">{conv.last_message || (conv.role === 'lecturer' ? 'Lecturer' : 'Student')}</span>
+                      <span className="text-xs text-slate-500 truncate">{conv.last_message || conv.role}</span>
                       {conv.unread_count > 0 && (
                         <span className="w-5 h-5 rounded-full bg-primary-500 text-white text-[10px] font-bold flex items-center justify-center shrink-0">{conv.unread_count}</span>
                       )}
@@ -230,8 +252,8 @@ export default function StudentChat() {
                 <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-primary-100 to-secondary-100 flex items-center justify-center mx-auto mb-4">
                   <svg className="w-8 h-8 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                 </div>
-                <h3 className="text-lg font-bold text-slate-700">Your Messages</h3>
-                <p className="text-sm text-slate-400 mt-1 max-w-xs">Select a conversation or start a new one to message your lecturer about attendance issues.</p>
+                <h3 className="text-lg font-bold text-slate-700">Admin Messages</h3>
+                <p className="text-sm text-slate-400 mt-1 max-w-xs">Select a conversation or broadcast a message to all students or lecturers.</p>
               </div>
             </div>
           ) : (
@@ -288,6 +310,49 @@ export default function StudentChat() {
           )}
         </div>
       </div>
+
+      {/* Broadcast Modal */}
+      <Modal open={showBroadcast} onClose={() => setShowBroadcast(false)}>
+        <div className="p-6 w-full max-w-md">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-800">Broadcast Message</h3>
+              <p className="text-xs text-slate-500">Send a message to all students or all lecturers</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Send to</label>
+              <div className="flex gap-2">
+                <button onClick={() => setBroadcastRole('student')}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${broadcastRole === 'student' ? 'bg-primary-500 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                >All Students</button>
+                <button onClick={() => setBroadcastRole('lecturer')}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${broadcastRole === 'lecturer' ? 'bg-primary-500 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                >All Lecturers</button>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Message</label>
+              <textarea value={broadcastBody} onChange={(e) => setBroadcastBody(e.target.value)}
+                placeholder="Type your broadcast message..."
+                rows={4}
+                className="w-full px-4 py-3 text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-primary-400 resize-none"
+              />
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button onClick={handleBroadcast} disabled={!broadcastBody.trim() || broadcastBusy} className="flex-1">
+                {broadcastBusy ? 'Sending...' : 'Send Broadcast'}
+              </Button>
+              <Button variant="ghost" onClick={() => setShowBroadcast(false)}>Cancel</Button>
+            </div>
+          </div>
+        </div>
+      </Modal>
     </Layout>
   )
 }

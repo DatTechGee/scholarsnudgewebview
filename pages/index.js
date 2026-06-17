@@ -4,7 +4,7 @@ import Card from '../components/shadcn/Card'
 import Badge from '../components/shadcn/Badge'
 import Button from '../components/shadcn/Button'
 import { Table, Thead, Th, Tbody, Tr, Td } from '../components/shadcn/Table'
-import { getDashboardSummary, getWeeklyAttendanceStats, getUsers, getAdminSessions, getAdminCourses } from '../services/api'
+import { getDashboardSummary, getWeeklyAttendanceStats, getUsers, getAdminSessions, getAdminCourses, downloadAllAttendanceCsv } from '../services/api'
 import { useRouter } from 'next/router'
 import { useAuth } from '../components/AuthContext'
 
@@ -139,6 +139,11 @@ export default function Dashboard() {
         </div>
       ) : (
         <>
+          <div className="flex items-center justify-between mb-4">
+            <div />
+            <Button variant="outline" size="sm" onClick={() => downloadAllAttendanceCsv(token).catch(() => setError('Failed to export.'))}>Export All Attendance</Button>
+          </div>
+
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
             <StatCard label="Students" value={summary?.students ?? 0} sub="Enrolled" icon="🎓" color="#6366f1" />
             <StatCard label="Lecturers" value={summary?.lecturers ?? 0} sub="Active faculty" icon="👨‍🏫" color="#10b981" />

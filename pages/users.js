@@ -5,15 +5,13 @@ import Card from '../components/shadcn/Card'
 import Input from '../components/shadcn/Input'
 import Select from '../components/shadcn/Select'
 import { Table, Thead, Th, Tbody, Tr, Td } from '../components/shadcn/Table'
-import { createUser, deleteUser, getLevels, getUsers, importUsersCsv, updateUser, getFaculties, getDepartments } from '../services/api'
+import { createUser, deleteUser, getLevels, getUsers, importUsersCsv, updateUser, verifyUser } from '../services/api'
 
 const emptyForm = {
   role: 'student',
   name: '',
   email: '',
   password: '',
-  faculty_id: '',
-  department_id: '',
   academic_level_id: '',
   matric_number: '',
   staff_id: '',
@@ -25,8 +23,6 @@ export default function Users() {
   const [roleFilter, setRoleFilter] = useState('')
   const [users, setUsers] = useState([])
   const [meta, setMeta] = useState({ current_page: 1, last_page: 1, total: 0 })
-  const [faculties, setFaculties] = useState([])
-  const [departments, setDepartments] = useState([])
   const [levels, setLevels] = useState([])
   const [editingUser, setEditingUser] = useState(null)
   const [form, setForm] = useState(emptyForm)
@@ -47,16 +43,8 @@ export default function Users() {
 
   useEffect(() => {
     if (!token) return
-    Promise.all([
-      getFaculties(token).then(d => setFaculties(Array.isArray(d) ? d : d?.data || [])).catch(() => {}),
-      getLevels(token).then(d => setLevels(Array.isArray(d) ? d : d?.data || [])).catch(() => {}),
-    ])
+    getLevels(token).then(d => setLevels(Array.isArray(d) ? d : d?.data || [])).catch(() => {})
   }, [token])
-
-  useEffect(() => {
-    if (!token || !form.faculty_id) { setDepartments([]); return }
-    getDepartments(token, form.faculty_id).then(d => setDepartments(Array.isArray(d) ? d : d?.data || [])).catch(() => setDepartments([]))
-  }, [token, form.faculty_id])
 
   const loadUsers = async (page = 1) => {
     setLoading(true); setError('')
@@ -82,8 +70,6 @@ export default function Users() {
       name: user.name || '',
       email: user.email || '',
       password: '',
-      faculty_id: user.faculty_id ? String(user.faculty_id) : '',
-      department_id: user.department_id ? String(user.department_id) : '',
       academic_level_id: user.academic_level_id ? String(user.academic_level_id) : '',
       matric_number: user.matric_number || '',
       staff_id: user.staff_id || '',
@@ -101,9 +87,7 @@ export default function Users() {
 
   const handleSubmit = async () => {
     if (!form.name || !form.email) { setError('Name and email are required.'); return }
-    if (!form.faculty_id) { setError('Faculty is required.'); return }
     if (form.role === 'student') {
-      if (!form.department_id) { setError('Department is required for students.'); return }
       if (!form.academic_level_id) { setError('Level is required for students.'); return }
       if (!form.matric_number) { setError('Matric number is required for students.'); return }
     }
@@ -115,8 +99,6 @@ export default function Users() {
         name: form.name,
         email: form.email,
         password: form.password || undefined,
-        faculty_id: Number(form.faculty_id),
-        department_id: form.department_id ? Number(form.department_id) : null,
         academic_level_id: form.role === 'student' ? Number(form.academic_level_id) : null,
         matric_number: form.role === 'student' ? form.matric_number : null,
         staff_id: form.role === 'lecturer' ? form.staff_id : null,
@@ -133,6 +115,16 @@ export default function Users() {
     setBusy(true); setError(''); setMessage('')
     try { await deleteUser(user.id, token); setMessage('User deleted successfully.'); await loadUsers(meta.current_page) }
     catch (err) { setError(err?.response?.data?.message || 'Could not delete user.') }
+    finally { setBusy(false) }
+  }
+
+  const handleVerify = async (user) => {
+    setBusy(true); setError(''); setMessage('')
+    try {
+      await verifyUser(user.id, { is_verified: !user.is_verified }, token)
+      setMessage(user.is_verified ? 'User unverified.' : 'User verified successfully!')
+      await loadUsers(meta.current_page)
+    } catch (err) { setError(err?.response?.data?.message || 'Could not update verification status.') }
     finally { setBusy(false) }
   }
 
@@ -197,20 +189,6 @@ export default function Users() {
               <label className="block text-sm font-medium text-slate-700 mb-1">{editingUser ? 'New Password (optional)' : 'Password'}</label>
               <Input value={form.password} onChange={(event) => handleFormChange('password', event.target.value)} placeholder={editingUser ? 'Leave blank to keep current' : 'Password (optional)'} />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Faculty <span className="text-red-400">*</span></label>
-              <select value={form.faculty_id} onChange={(e) => { handleFormChange('faculty_id', e.target.value); handleFormChange('department_id', '') }} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm">
-                <option value="">Select faculty</option>
-                {faculties.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Department {form.role === 'student' ? <span className="text-red-400">*</span> : null}</label>
-              <select value={form.department_id} onChange={(e) => handleFormChange('department_id', e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm">
-                <option value="">{form.faculty_id ? 'Select department' : 'Select faculty first'}</option>
-                {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-              </select>
-            </div>
             {form.role === 'student' && (
               <>
                 <div>
@@ -257,7 +235,7 @@ export default function Users() {
                     <Td className="text-sm text-slate-500">{user.faculty?.name || (typeof user.faculty === 'string' ? user.faculty : '—')}</Td>
                     <Td className="text-sm text-slate-500">{user.department?.name || (typeof user.department === 'string' ? user.department : '—')}</Td>
                     <Td><span className={`inline-flex items-center gap-1.5 text-xs font-medium ${user.is_verified ? 'text-emerald-600' : 'text-amber-500'}`}><span className={`w-1.5 h-1.5 rounded-full ${user.is_verified ? 'bg-emerald-500' : 'bg-amber-400'}`} />{user.is_verified ? 'Verified' : 'Pending'}</span></Td>
-                    <Td className="text-right"><div className="flex justify-end gap-2"><Button variant="outline" size="sm" onClick={() => openEditForm(user)}>Edit</Button><Button variant="destructive" size="sm" onClick={() => handleDelete(user)}>Delete</Button></div></Td>
+                    <Td className="text-right"><div className="flex justify-end gap-2"><Button variant={user.is_verified ? 'ghost' : 'default'} size="sm" onClick={() => handleVerify(user)}>{user.is_verified ? 'Unverify' : 'Verify'}</Button><Button variant="outline" size="sm" onClick={() => openEditForm(user)}>Edit</Button><Button variant="destructive" size="sm" onClick={() => handleDelete(user)}>Delete</Button></div></Td>
                   </Tr>
                 ))}
               </Tbody>
