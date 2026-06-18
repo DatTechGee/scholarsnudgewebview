@@ -3,20 +3,20 @@ import Document, { Html, Head, Main, NextScript } from 'next/document'
 const REDIRECT_SCRIPT = `(function(){
   var p = window.location.pathname.replace(/\\/$/, '');
   var t = localStorage.getItem('admin_token');
-  var loginPage = '/school/login';
-  var publicPages = ['/school/login','/school/register','/school/forgot-password','/school/reset-password'];
+  var loginPage = '/scholars/login';
+  var publicPages = ['/scholars/login','/scholars/register','/scholars/forgot-password','/scholars/reset-password'];
 
-  if (p === '/school' && !t) { window.location.replace(loginPage); return; }
+  if (p === '/scholars' && !t) { window.location.replace(loginPage); return; }
 
-  if (p.startsWith('/school/') && !publicPages.includes(p) && p !== '/school' && !t) {
+  if (p.startsWith('/scholars/') && !publicPages.includes(p) && p !== '/scholars' && !t) {
     window.location.replace(loginPage); return;
   }
 
   if (publicPages.includes(p) && t) {
     var role = (function(){ try { var u=JSON.parse(localStorage.getItem('user_data')); return u&&u.role; } catch(e){} })() || localStorage.getItem('user_role') || '';
-    if (role==='admin'||role==='super_admin') { window.location.replace('/school/'); return; }
-    if (role==='lecturer') { window.location.replace('/school/lecturer'); return; }
-    if (role==='student') { window.location.replace('/school/student'); return; }
+    if (role==='admin'||role==='super_admin') { window.location.replace('/scholars/'); return; }
+    if (role==='lecturer') { window.location.replace('/scholars/lecturer'); return; }
+    if (role==='student') { window.location.replace('/scholars/student'); return; }
   }
 })();`
 
@@ -34,7 +34,7 @@ export default class MyDocument extends Document {
           <Main />
           <NextScript />
           <noscript>
-            <meta httpEquiv="refresh" content="0;url=/school/login" />
+            <meta httpEquiv="refresh" content="0;url=/scholars/login" />
           </noscript>
         </body>
       </Html>

@@ -31,7 +31,7 @@ export default function Login() {
       window.localStorage.setItem('user_name', me.name || 'User')
       window.localStorage.setItem('user_data', JSON.stringify(me))
 
-      const base = window.location.pathname.startsWith('/school') ? '/school' : ''
+      const base = window.location.pathname.startsWith('/scholars') ? '/scholars' : ''
       const dest = role === 'admin' || role === 'super_admin' ? base : role === 'lecturer' ? `${base}/lecturer` : `${base}/student`
       window.location.href = dest
     } catch (err) {
