@@ -31,12 +31,6 @@ export default function StudentChat() {
   const [showSidebar, setShowSidebar] = useState(true)
   const messagesEndRef = useRef(null)
 
-  const getToken = useCallback(() => {
-    const t = typeof window !== 'undefined' ? window.localStorage.getItem('admin_token') || '' : ''
-    setToken(t)
-    return t
-  }, [])
-
   const loadConversations = useCallback(async (t) => {
     if (!t) return
     try {
@@ -63,10 +57,11 @@ export default function StudentChat() {
   }, [])
 
   useEffect(() => {
-    const t = getToken()
+    const t = window.localStorage.getItem('admin_token') || ''
+    setToken(t)
     if (t) { loadConversations(t); loadUnread(t) }
     else setLoading(false)
-  }, [getToken, loadConversations, loadUnread])
+  }, [loadConversations, loadUnread])
 
   useEffect(() => {
     if (!token) return

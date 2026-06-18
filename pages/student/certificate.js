@@ -6,19 +6,13 @@ import Select from '../../components/shadcn/Select'
 import { getStudentAttendanceReport, getAttendanceCertificate } from '../../services/api'
 
 export default function StudentCertificate() {
-  const [token, setToken] = useState('')
   const [courses, setCourses] = useState([])
   const [selectedCourse, setSelectedCourse] = useState('')
   const [cert, setCert] = useState(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-
-  const getToken = useCallback(() => {
-    const t = typeof window !== 'undefined' ? window.localStorage.getItem('admin_token') || '' : ''
-    setToken(t)
-    return t
-  }, [])
+  const [token, setToken] = useState('')
 
   const loadCourses = useCallback(async (t) => {
     if (!t) { setLoading(false); return }
@@ -35,6 +29,12 @@ export default function StudentCertificate() {
       setError('Failed to load courses.')
     } finally { setLoading(false) }
   }, [])
+
+  useEffect(() => {
+    const t = window.localStorage.getItem('admin_token') || ''
+    setToken(t)
+    loadCourses(t)
+  }, [loadCourses])
 
   const generate = async () => {
     if (!selectedCourse) return
@@ -54,12 +54,6 @@ export default function StudentCertificate() {
     win.document.close()
     win.print()
   }
-
-  useEffect(() => {
-    const t = getToken()
-    if (t) loadCourses(t)
-    else setLoading(false)
-  }, [])
 
   return (
     <Layout>

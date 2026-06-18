@@ -5,6 +5,7 @@ import Card from '../../components/shadcn/Card'
 import Badge from '../../components/shadcn/Badge'
 import Button from '../../components/shadcn/Button'
 import { Table, Thead, Th, Tbody, Tr, Td } from '../../components/shadcn/Table'
+import { useAuth } from '../../components/AuthContext'
 import {
   getStudentAttendanceReport,
   getStudentAttendanceHistory,
@@ -33,6 +34,7 @@ function StatCard({ label, value, sub, color, icon }) {
 }
 
 export default function StudentDashboard() {
+  const { user } = useAuth()
   const [token, setToken] = useState('')
   const [report, setReport] = useState(null)
   const [history, setHistory] = useState([])
@@ -42,12 +44,6 @@ export default function StudentDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [insights, setInsights] = useState([])
-
-  const getToken = useCallback(() => {
-    const t = typeof window !== 'undefined' ? window.localStorage.getItem('admin_token') || '' : ''
-    setToken(t)
-    return t
-  }, [])
 
   const loadData = useCallback(async (t) => {
     if (!t) { setLoading(false); return }
@@ -77,7 +73,8 @@ export default function StudentDashboard() {
   }, [])
 
   useEffect(() => {
-    const t = getToken()
+    const t = window.localStorage.getItem('admin_token') || ''
+    setToken(t)
     if (t) loadData(t)
     else setLoading(false)
   }, [])

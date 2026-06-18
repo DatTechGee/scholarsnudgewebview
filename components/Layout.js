@@ -18,7 +18,16 @@ export default function Layout({ children }) {
     setSidebarOpen(false)
   }, [router.pathname])
 
-  if (!ready) return null
+  if (!ready) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[#f3f6fb]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-[3px] border-primary-200 border-t-primary-600 rounded-full animate-spin" />
+          <p className="text-sm text-surface-400 font-medium">Loading...</p>
+        </div>
+      </div>
+    )
+  }
   if (!user) return null
 
   const isPublicPage = ['/login', '/register'].includes(router.pathname)

@@ -17,14 +17,12 @@ const dayColors = {
 
 export default function StudentTimetable() {
   const router = useRouter()
-  const [token, setToken] = useState('')
   const [timetable, setTimetable] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
     const t = window.localStorage.getItem('admin_token') || ''
-    setToken(t)
     if (t) {
       getStudentTimetable(t).then(d => {
         const data = Array.isArray(d?.data) ? d.data : Array.isArray(d) ? d : []
@@ -47,14 +45,14 @@ export default function StudentTimetable() {
     grouped[day].sort((a, b) => (a.start_time || a.time)?.localeCompare(b.start_time || b.time))
   })
 
-  if (!token) {
+  if (!loading && timetable.length === 0 && error) {
     return (
       <Layout>
         <Card className="p-12 text-center">
           <svg className="w-12 h-12 text-surface-300 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
           </svg>
-          <p className="text-surface-500 mb-4">Please sign in first.</p>
+          <p className="text-surface-500 mb-4">{error}</p>
           <Button onClick={() => router.push('/login')}>Sign In</Button>
         </Card>
       </Layout>

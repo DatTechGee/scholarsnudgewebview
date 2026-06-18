@@ -87,7 +87,7 @@ export default function Dashboard() {
   const getToken = useCallback(() => window.localStorage.getItem('admin_token') || '', [])
 
   useEffect(() => {
-    const t = getToken()
+    const t = window.localStorage.getItem('admin_token') || ''
     if (t) loadData(t)
     else setLoading(false)
     async function loadData(t) {

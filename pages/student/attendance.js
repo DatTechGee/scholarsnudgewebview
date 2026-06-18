@@ -12,7 +12,6 @@ import { getStudentAttendanceHistory, getStudentAttendanceReport } from '../../s
 export default function StudentAttendance() {
   const router = useRouter()
   const { course: courseParam } = router.query
-  const [token, setToken] = useState('')
   const [records, setRecords] = useState([])
   const [meta, setMeta] = useState({ current_page: 1, last_page: 1, total: 0, per_page: 20 })
   const [report, setReport] = useState(null)
@@ -23,12 +22,6 @@ export default function StudentAttendance() {
   const [statusFilter, setStatusFilter] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
-
-  const getToken = useCallback(() => {
-    const t = typeof window !== 'undefined' ? window.localStorage.getItem('admin_token') || '' : ''
-    setToken(t)
-    return t
-  }, [])
 
   const loadData = useCallback(async (t, page = 1) => {
     if (!t) { setLoading(false); return }
@@ -76,7 +69,7 @@ export default function StudentAttendance() {
   }, [courseFilter, statusFilter, dateFrom, dateTo, courseParam, meta.per_page])
 
   useEffect(() => {
-    const t = getToken()
+    const t = window.localStorage.getItem('admin_token') || ''
     if (t) loadData(t)
     else setLoading(false)
   }, [])
@@ -88,11 +81,12 @@ export default function StudentAttendance() {
   }, [courseParam])
 
   useEffect(() => {
-    if (token) loadData(token)
+    const t = window.localStorage.getItem('admin_token') || ''
+    if (t) loadData(t)
   }, [courseFilter, statusFilter, dateFrom, dateTo])
 
   const loadPage = (page) => {
-    const t = token || getToken()
+    const t = window.localStorage.getItem('admin_token') || ''
     if (t) loadData(t, page)
   }
 
@@ -235,11 +229,7 @@ export default function StudentAttendance() {
       </Card>
 
       {/* Table */}
-      {!token ? (
-        <Card className="p-12 text-center">
-          <p className="text-surface-400 text-sm">Please log in to view attendance records.</p>
-        </Card>
-      ) : loading ? (
+      {loading ? (
         <div className="space-y-3">{[1, 2, 3, 4, 5].map((i) => <Card key={i} className="h-12 animate-pulse bg-surface-100" />)}</div>
       ) : records.length === 0 ? (
         <Card className="p-12 text-center">

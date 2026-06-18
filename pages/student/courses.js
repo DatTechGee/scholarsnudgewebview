@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import Layout from '../../components/Layout'
 import Card from '../../components/shadcn/Card'
@@ -10,25 +10,23 @@ import { getStudentAttendanceReport } from '../../services/api'
 
 export default function StudentCourses() {
   const router = useRouter()
-  const [token, setToken] = useState('')
   const [courses, setCourses] = useState([])
   const [summary, setSummary] = useState({ total_courses: 0, overall_average: 0 })
+  const [hasToken, setHasToken] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [query, setQuery] = useState('')
+  const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
     const t = window.localStorage.getItem('admin_token') || ''
-    setToken(t)
-  }, [])
-
-  useEffect(() => {
-    if (!token) return
+    setHasToken(!!t)
+    if (!t) return
     const load = async () => {
       setLoading(true)
       setError('')
       try {
-        const data = await getStudentAttendanceReport(token)
+        const data = await getStudentAttendanceReport(t)
         const rows = Array.isArray(data?.report) ? data.report : Array.isArray(data?.courses) ? data.courses : Array.isArray(data) ? data : []
         setCourses(rows)
         setSummary({
@@ -43,7 +41,7 @@ export default function StudentCourses() {
       }
     }
     load()
-  }, [token])
+  }, [refreshKey])
 
   const filtered = useMemo(() => {
     if (!query.trim()) return courses
@@ -64,7 +62,7 @@ export default function StudentCourses() {
           <h1 className="text-xl sm:text-2xl font-bold text-surface-800">My Courses</h1>
           <p className="text-surface-500 text-sm">Attendance report for your enrolled courses</p>
         </div>
-        <Button variant="ghost" onClick={() => setToken(window.localStorage.getItem('admin_token') || '')} disabled={loading}>
+        <Button variant="ghost" onClick={() => setRefreshKey(k => k + 1)} disabled={loading}>
           {loading ? 'Loading...' : 'Refresh'}
         </Button>
       </div>
@@ -108,7 +106,7 @@ export default function StudentCourses() {
         </Card>
       </div>
 
-      {!token ? (
+      {!hasToken ? (
         <Card className="p-12 text-center">
           <svg className="w-12 h-12 text-surface-300 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />

@@ -26,32 +26,34 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const token = window.localStorage.getItem('admin_token')
 
-    if (token) {
-      try {
-        const cached = JSON.parse(window.localStorage.getItem('user_data') || 'null')
-        if (cached) setUser(parseUser(cached))
-      } catch (_) {}
-
-      getMe(token).then(res => {
-        const me = res?.data || res || {}
-        const parsed = parseUser(me)
-        if (parsed) {
-          setUser(parsed)
-          window.localStorage.setItem('user_data', JSON.stringify(parsed))
-        }
-      }).catch(() => {
-        // If cached user exists, keep it — don't force logout on API failure
-        const cached = window.localStorage.getItem('user_data')
-        if (!cached) {
-          window.localStorage.removeItem('admin_token')
-          window.localStorage.removeItem('user_data')
-          window.localStorage.removeItem('user_role')
-          setUser(null)
-        }
-      })
+    if (!token) {
+      setReady(true)
+      return
     }
 
-    setReady(true)
+    try {
+      const cached = JSON.parse(window.localStorage.getItem('user_data') || 'null')
+      if (cached) setUser(parseUser(cached))
+    } catch (_) {}
+
+    getMe(token).then(res => {
+      const me = res?.data || res || {}
+      const parsed = parseUser(me)
+      if (parsed) {
+        setUser(parsed)
+        window.localStorage.setItem('user_data', JSON.stringify(parsed))
+      }
+    }).catch(() => {
+      const cached = window.localStorage.getItem('user_data')
+      if (!cached) {
+        window.localStorage.removeItem('admin_token')
+        window.localStorage.removeItem('user_data')
+        window.localStorage.removeItem('user_role')
+        setUser(null)
+      }
+    }).finally(() => {
+      setReady(true)
+    })
   }, [])
 
   const logout = () => {
