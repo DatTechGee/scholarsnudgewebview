@@ -9,7 +9,7 @@ export default function Badge({ children, variant = 'default', className = '' })
     danger: 'bg-red-50 text-red-700 border border-red-200',
     info: 'bg-primary-50 text-primary-700 border border-primary-200',
     outline: 'bg-transparent border border-surface-300 text-surface-600',
-    premium: 'bg-gradient-to-r from-primary-500 to-secondary-500 text-white',
+    premium: 'bg-gradient-to-r from-primary-500 to-secondary-500 text-white border-0',
   }
   return (
     <span className={clsx('inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wide', variants[variant], className)}>

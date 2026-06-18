@@ -124,6 +124,13 @@ export default function Dashboard() {
     { label: 'Courses', value: summary?.courses ?? 0, color: '#2f6df6' },
   ]
 
+  const getGreeting = () => {
+    const h = new Date().getHours()
+    if (h < 12) return 'Good morning'
+    if (h < 17) return 'Good afternoon'
+    return 'Good evening'
+  }
+
   return (
     <Layout>
       {loading ? (
@@ -139,22 +146,33 @@ export default function Dashboard() {
         </div>
       ) : (
         <>
-          <div className="flex items-center justify-between mb-4">
-            <div />
-            <Button variant="outline" size="sm" onClick={() => downloadAllAttendanceCsv(token).catch(() => setError('Failed to export.'))}>Export All Attendance</Button>
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-surface-800">{getGreeting()}, {user?.name || 'Admin'}</h1>
+              <p className="text-surface-500 text-sm mt-1">Here's what's happening in your institution</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => downloadAllAttendanceCsv(getToken()).catch(() => setError('Failed to export.'))} className="shrink-0">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Export All Attendance
+            </Button>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+          {/* Stats */}
+          <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4 mb-6">
             <StatCard label="Students" value={summary?.students ?? 0} sub="Enrolled" icon="🎓" color="#6366f1" />
             <StatCard label="Lecturers" value={summary?.lecturers ?? 0} sub="Active faculty" icon="👨‍🏫" color="#10b981" />
             <StatCard label="Courses" value={summary?.courses ?? 0} sub="Across all levels" icon="📚" color="#2f6df6" />
             <StatCard label="Sessions" value={summary?.sessions ?? activeSessions.length} sub={`${activeSessions.length} active now`} icon="📋" color="#f59e0b" />
           </div>
 
-          <div className="grid gap-6 mb-6 lg:grid-cols-5">
+          {/* Charts */}
+          <div className="grid gap-6 mb-6 grid-cols-1 lg:grid-cols-5">
             <Card className="lg:col-span-2 p-6">
               <div className="text-center mb-4">
-                <h3 className="text-heading3 text-surface-800">System Overview</h3>
+                <h3 className="text-lg font-bold text-surface-800">System Overview</h3>
                 <p className="text-sm font-medium text-surface-400 mt-0.5">User distribution</p>
               </div>
               <DonutChart data={donutData} />
@@ -163,8 +181,8 @@ export default function Dashboard() {
             <Card className="lg:col-span-3 p-6">
               <div className="flex items-center justify-between mb-5">
                 <div>
-                  <h3 className="text-heading3 text-surface-800">Weekly Attendance Trend</h3>
-                  <p className="text-sm font-medium text-surface-400 mt-0.5">Attendance distribution across the week</p>
+                  <h3 className="text-lg font-bold text-surface-800">Weekly Attendance Trend</h3>
+                  <p className="text-sm font-medium text-surface-400 mt-0.5">Attendance across the week</p>
                 </div>
                 {weekly.length > 0 && (
                   <Badge variant="info" className="text-xs">{weekly.reduce((a, b) => a + b.value, 0)} total</Badge>
@@ -174,7 +192,8 @@ export default function Dashboard() {
             </Card>
           </div>
 
-          <div className="grid gap-6 mb-6 lg:grid-cols-2">
+          {/* Sessions & Users */}
+          <div className="grid gap-6 mb-6 grid-cols-1 lg:grid-cols-2">
             {activeSessions.length > 0 && (
               <Card className="p-0 overflow-hidden">
                 <div className="p-5 bg-gradient-to-r from-emerald-50 to-emerald-100/50 border-b border-emerald-200/50">
@@ -183,7 +202,7 @@ export default function Dashboard() {
                       <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse-soft shadow-lg shadow-emerald-300" />
                       <div>
                         <h3 className="font-bold text-surface-800">Active Sessions Now</h3>
-                        <p className="text-xs font-medium text-surface-500 mt-0.5">{activeSessions.length} session{activeSessions.length > 1 ? 's' : ''} currently running</p>
+                        <p className="text-xs font-medium text-surface-500 mt-0.5">{activeSessions.length} session{activeSessions.length > 1 ? 's' : ''} running</p>
                       </div>
                     </div>
                     <Button variant="outline" size="sm" onClick={() => router.push('/sessions?status=active')}>View All</Button>
@@ -242,10 +261,11 @@ export default function Dashboard() {
             )}
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-2">
+          {/* Courses & Institution */}
+          <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
             {recentCourses.length > 0 && (
               <Card className="p-0 overflow-hidden">
-                <div className="p-5 border-b border-surface-200">
+                <div className="p-5 border-b border-surface-100">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="icon-box w-10 h-10">

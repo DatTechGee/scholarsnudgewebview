@@ -452,6 +452,26 @@ export async function checkOutAttendance(sessionId, token) {
   return res.data
 }
 
+export async function monitorAttendanceLocation(sessionId, payload, token) {
+  const res = await client.post(`/student/sessions/${sessionId}/monitor-location`, payload, authConfig(token))
+  return res.data
+}
+
+export async function getStudentSessionReport(sessionId, token) {
+  const res = await client.get(`/student/sessions/${sessionId}/report`, authConfig(token))
+  return res.data
+}
+
+export async function getAttendanceCertificate(courseId, token) {
+  const res = await client.get(`/student/courses/${courseId}/certificate`, authConfig(token))
+  return res.data
+}
+
+export async function autoMarkAttendance(sessionId, payload, token) {
+  const res = await client.post(`/student/sessions/${sessionId}/auto-mark-attendance`, payload, authConfig(token))
+  return res.data
+}
+
 export async function getStudentCourseAttendanceReport(courseId, token) {
   const res = await client.get(`/reports/attendance/course/${courseId}`, authConfig(token))
   return res.data
@@ -459,11 +479,6 @@ export async function getStudentCourseAttendanceReport(courseId, token) {
 
 export async function getStudentFaceStatus(token) {
   const res = await client.get('/student/face/status', authConfig(token))
-  return res.data
-}
-
-export async function getAttendanceCertificate(courseId, token) {
-  const res = await client.get(`/student/courses/${courseId}/certificate`, authConfig(token))
   return res.data
 }
 

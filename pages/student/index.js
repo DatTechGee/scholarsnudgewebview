@@ -1,9 +1,9 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback } from 'react'
+import Link from 'next/link'
 import Layout from '../../components/Layout'
 import Card from '../../components/shadcn/Card'
 import Badge from '../../components/shadcn/Badge'
 import Button from '../../components/shadcn/Button'
-import Modal from '../../components/shadcn/Modal'
 import { Table, Thead, Th, Tbody, Tr, Td } from '../../components/shadcn/Table'
 import {
   getStudentAttendanceReport,
@@ -11,16 +11,23 @@ import {
   getStudentTimetable,
   getStudentFaceStatus,
   getStudentActiveSessions,
-  checkInAttendance,
-  checkOutAttendance,
 } from '../../services/api'
 
-function StatCard({ label, value, sub, color }) {
+function StatCard({ label, value, sub, color, icon }) {
   return (
-    <Card className="border-l-4 shadow-sm text-center" style={{ borderLeftColor: color }}>
-      <div className="text-2xl font-bold text-slate-800">{value ?? '—'}</div>
-      {sub ? <div className="text-xs text-slate-400">{sub}</div> : null}
-      <div className="text-xs text-slate-500 uppercase tracking-wide mt-1">{label}</div>
+    <Card className="p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card">
+      <div className="flex items-center gap-4">
+        <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={{ background: `linear-gradient(135deg, ${color}20, ${color}10)` }}>
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke={color} strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d={icon} />
+          </svg>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-2xl font-bold text-surface-800">{value ?? '—'}</div>
+          <div className="text-xs text-surface-500 font-medium">{label}</div>
+          {sub && <div className="text-[11px] text-surface-400 mt-0.5">{sub}</div>}
+        </div>
+      </div>
     </Card>
   )
 }
@@ -34,23 +41,7 @@ export default function StudentDashboard() {
   const [activeSessions, setActiveSessions] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [showCheckIn, setShowCheckIn] = useState(false)
-  const [checkInSession, setCheckInSession] = useState(null)
-  const [checkInBusy, setCheckInBusy] = useState(false)
-  const [checkInError, setCheckInError] = useState('')
-  const [checkInSuccess, setCheckInSuccess] = useState('')
-  const [showCamera, setShowCamera] = useState(false)
-  const [cameraStream, setCameraStream] = useState(null)
-  const [videoReady, setVideoReady] = useState(false)
-  const [faceImage, setFaceImage] = useState(null)
-  const [facePreview, setFacePreview] = useState(null)
-  const [location, setLocation] = useState(null)
-  const [locationError, setLocationError] = useState('')
-  const [monitoringSession, setMonitoringSession] = useState(null)
-  const [monitorTimer, setMonitorTimer] = useState(null)
   const [insights, setInsights] = useState([])
-  const videoRef = useRef(null)
-  const canvasRef = useRef(null)
 
   const getToken = useCallback(() => {
     const t = typeof window !== 'undefined' ? window.localStorage.getItem('admin_token') || '' : ''
@@ -86,137 +77,10 @@ export default function StudentDashboard() {
   }, [])
 
   useEffect(() => {
-    if (cameraStream && videoRef.current) {
-      videoRef.current.srcObject = cameraStream
-    }
-  }, [cameraStream])
-
-  const startCamera = useCallback(async () => {
-    setCheckInError('')
-    setVideoReady(false)
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
-      })
-      setCameraStream(stream)
-      setShowCamera(true)
-    } catch {
-      setCheckInError('Camera access denied.')
-    }
-  }, [])
-
-  const stopCamera = useCallback(() => {
-    if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); setCameraStream(null) }
-    setShowCamera(false)
-    setVideoReady(false)
-  }, [cameraStream])
-
-  const captureFrame = useCallback(() => {
-    const video = videoRef.current
-    const canvas = canvasRef.current
-    if (!video || !canvas || !videoReady) return
-    canvas.width = video.videoWidth || 640
-    canvas.height = video.videoHeight || 480
-    const ctx = canvas.getContext('2d')
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-    canvas.toBlob((blob) => {
-      if (blob) {
-        const file = new File([blob], 'face.jpg', { type: 'image/jpeg' })
-        setFaceImage(file)
-        setFacePreview(URL.createObjectURL(blob))
-      }
-    }, 'image/jpeg', 0.9)
-    stopCamera()
-  }, [stopCamera, videoReady])
-
-  const getLocation = useCallback(() => {
-    if (!navigator.geolocation) { setLocationError('Geolocation not available.'); return }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLocation({
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-          accuracy: pos.coords.accuracy,
-        })
-        setLocationError('')
-      },
-      () => { setLocationError('Could not get location. Check-in may still work.'); setLocation(null) },
-      { enableHighAccuracy: true, timeout: 10000 }
-    )
-  }, [])
-
-  const openCheckIn = (session) => {
-    const checkedIn = session.checked_in_count ?? 0
-    const capacity = session.seating_capacity
-    if (capacity != null && checkedIn >= capacity) {
-      setCheckInError('This session has reached its full capacity.')
-      return
-    }
-    setCheckInSession(session)
-    setFaceImage(null); setFacePreview(null); setShowCamera(false)
-    setCheckInError(''); setCheckInSuccess('')
-    setLocation(null); setLocationError('')
-    getLocation()
-    setShowCheckIn(true)
-  }
-
-  const handleCheckIn = async () => {
-    if (!checkInSession) return
-    setCheckInBusy(true); setCheckInError(''); setCheckInSuccess('')
-    try {
-      const payload = {}
-      if (faceImage) payload.faceImage = faceImage
-      if (location != null) {
-        payload.latitude = location.latitude
-        payload.longitude = location.longitude
-        if (location.accuracy != null) payload.accuracy = location.accuracy
-        const hashStr = `${checkInSession.id}|${location.latitude}|${location.longitude}|${location.accuracy ?? ''}`
-        const enc = new TextEncoder()
-        const hashBuf = await crypto.subtle.digest('SHA-256', enc.encode(hashStr))
-        const hashArr = Array.from(new Uint8Array(hashBuf))
-        payload.integrity_hash = hashArr.map(b => b.toString(16).padStart(2, '0')).join('')
-      }
-      await checkInAttendance(checkInSession.id, payload, token)
-      setCheckInSuccess('Checked in successfully!')
-      setMonitoringSession(checkInSession)
-      setTimeout(() => { setShowCheckIn(false) }, 800)
-    } catch (err) {
-      setCheckInError(err?.response?.data?.message || 'Check-in failed.')
-    } finally { setCheckInBusy(false) }
-  }
-
-  const handleCheckOut = async (session) => {
-    if (!window.confirm('Check out of this session?')) return
-    setCheckInBusy(true)
-    try {
-      await checkOutAttendance(session.id, token)
-      setMonitoringSession(null)
-      setMonitorTimer(null)
-      await loadData(token)
-    } catch (err) {
-      setError(err?.response?.data?.message || 'Check-out failed.')
-    } finally { setCheckInBusy(false) }
-  }
-
-  useEffect(() => {
     const t = getToken()
     if (t) loadData(t)
     else setLoading(false)
   }, [])
-
-  useEffect(() => {
-    if (!monitoringSession?.ends_at) return
-    const update = () => {
-      const remaining = new Date(monitoringSession.ends_at).getTime() - Date.now()
-      if (remaining <= 0) { setMonitorTimer('Ended'); setMonitoringSession(null); return }
-      const m = Math.floor(remaining / 60000)
-      const s = Math.floor((remaining % 60000) / 1000)
-      setMonitorTimer(`${m}m ${s}s`)
-    }
-    update()
-    const iv = setInterval(update, 1000)
-    return () => clearInterval(iv)
-  }, [monitoringSession])
 
   const student = report?.student || report?.user || {}
   const summary = report?.summary || report || { total: 0, attended: 0, present: 0, late: 0, absent: 0, average_percentage: 0 }
@@ -230,61 +94,153 @@ export default function StudentDashboard() {
     const result = []
     courses.forEach(c => {
       const pct = c.average_percentage ?? c.avg ?? 0
-      if (pct < 50) result.push({ type: 'danger', text: `${c.code || c.course_code}: attendance at ${pct}% — at risk.` })
-      else if (pct < 75) result.push({ type: 'warning', text: `${c.code || c.course_code}: attendance at ${pct}% — needs improvement.` })
-      else if (pct >= 90) result.push({ type: 'success', text: `${c.code || c.course_code}: excellent attendance at ${pct}%!` })
+      if (pct < 50) result.push({ type: 'danger', text: `${c.code || c.course_code}: attendance at ${pct}% — at risk.`, icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z' })
+      else if (pct < 75) result.push({ type: 'warning', text: `${c.code || c.course_code}: attendance at ${pct}% — needs improvement.`, icon: 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' })
+      else if (pct >= 90) result.push({ type: 'success', text: `${c.code || c.course_code}: excellent attendance at ${pct}%!`, icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' })
     })
     const lateCount = summary.late_count ?? summary.late ?? 0
-    if (lateCount > 3) result.push({ type: 'warning', text: `Frequent lateness (${lateCount} times). Try arriving earlier.` })
+    if (lateCount > 3) result.push({ type: 'warning', text: `Frequent lateness (${lateCount} times). Try arriving earlier.`, icon: 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' })
     setInsights(result)
   }, [courses])
 
+  const getGreeting = () => {
+    const h = new Date().getHours()
+    if (h < 12) return 'Good morning'
+    if (h < 17) return 'Good afternoon'
+    return 'Good evening'
+  }
+
   return (
     <Layout>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">
-            Welcome, {student.name || 'Student'}
-          </h1>
-          <p className="text-slate-500 text-sm">Your attendance overview and activity</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="info">Student</Badge>
-          {faceStatus ? (
-            <Badge variant={faceStatus.registered || faceStatus.status === 'registered' ? 'success' : 'warning'}>
-              {faceStatus.registered || faceStatus.status === 'registered' ? 'Face Registered' : 'Face Pending'}
-            </Badge>
-          ) : null}
-          <Button variant="ghost" onClick={() => loadData(token)} disabled={loading}>
-            {loading ? 'Loading...' : 'Refresh'}
-          </Button>
+      {/* Hero Welcome */}
+      <div className="mb-6 sm:mb-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-surface-800">
+              {getGreeting()}, {student.name || 'Student'}
+            </h1>
+            <p className="text-surface-500 text-sm mt-1">Here's your attendance overview for this semester</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {faceStatus && (
+              <Badge variant={faceStatus.registered || faceStatus.status === 'registered' ? 'success' : 'warning'}>
+                {faceStatus.registered || faceStatus.status === 'registered' ? 'Face Registered' : 'Face Pending'}
+              </Badge>
+            )}
+            <Button variant="ghost" size="sm" onClick={() => loadData(token)} disabled={loading}>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              {loading ? 'Loading...' : 'Refresh'}
+            </Button>
+          </div>
         </div>
       </div>
 
-      {error ? (
-        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700 text-sm">{error}</div>
-      ) : null}
+      {error && (
+        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700 text-sm flex items-center gap-2">
+          <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          {error}
+        </div>
+      )}
 
       {loading ? (
         <div className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-5">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <Card key={i} className="h-28 animate-pulse bg-slate-100" />
+          <div className="grid gap-4 md:grid-cols-4">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i} className="h-24 animate-pulse bg-surface-100" />
             ))}
           </div>
-          <Card className="h-48 animate-pulse bg-slate-100" />
-          <Card className="h-32 animate-pulse bg-slate-100" />
+          <Card className="h-48 animate-pulse bg-surface-100" />
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card className="h-64 animate-pulse bg-surface-100" />
+            <Card className="h-64 animate-pulse bg-surface-100" />
+          </div>
         </div>
       ) : (
         <>
+          {/* Quick Actions */}
+          <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-4 mb-8">
+            <Link href="/student/certificate">
+              <Card className="p-4 cursor-pointer group hover:-translate-y-0.5 hover:shadow-card transition-all duration-200 border-l-4 border-l-primary-500">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center group-hover:bg-primary-100 transition-colors">
+                    <svg className="w-5 h-5 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-surface-800">Certificate</div>
+                    <div className="text-[11px] text-surface-400">View & download</div>
+                  </div>
+                </div>
+              </Card>
+            </Link>
+            <Link href="/student/attendance">
+              <Card className="p-4 cursor-pointer group hover:-translate-y-0.5 hover:shadow-card transition-all duration-200 border-l-4 border-l-emerald-500">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
+                    <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-surface-800">Attendance</div>
+                    <div className="text-[11px] text-surface-400">Full history</div>
+                  </div>
+                </div>
+              </Card>
+            </Link>
+            <Link href="/student/courses">
+              <Card className="p-4 cursor-pointer group hover:-translate-y-0.5 hover:shadow-card transition-all duration-200 border-l-4 border-l-secondary-500">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-secondary-50 flex items-center justify-center group-hover:bg-secondary-100 transition-colors">
+                    <svg className="w-5 h-5 text-secondary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-surface-800">Courses</div>
+                    <div className="text-[11px] text-surface-400">My courses</div>
+                  </div>
+                </div>
+              </Card>
+            </Link>
+            <Link href="/student/timetable">
+              <Card className="p-4 cursor-pointer group hover:-translate-y-0.5 hover:shadow-card transition-all duration-200 border-l-4 border-l-amber-500">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center group-hover:bg-amber-100 transition-colors">
+                    <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-surface-800">Timetable</div>
+                    <div className="text-[11px] text-surface-400">Weekly schedule</div>
+                  </div>
+                </div>
+              </Card>
+            </Link>
+          </div>
+
+          {/* Active Sessions */}
           {activeSessions.length > 0 && (
-            <Card className="mb-6 border-l-4 border-l-emerald-500 bg-emerald-50/50">
-              <div className="p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-lg font-bold text-emerald-800">
-                    <span className="inline-block w-3 h-3 rounded-full bg-emerald-500 animate-pulse mr-2" />
-                    Active Sessions ({activeSessions.length})
-                  </h2>
+            <Card className="mb-6 border-l-4 border-l-emerald-500">
+              <div className="p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="section-header mb-0">
+                    <div className="section-header-icon bg-emerald-500/10">
+                      <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-surface-800">Active Sessions</h2>
+                      <p className="text-xs text-surface-400">{activeSessions.length} session{activeSessions.length > 1 ? 's' : ''} in progress</p>
+                    </div>
+                  </div>
                   <Button variant="ghost" size="sm" onClick={() => loadData(token)}>Refresh</Button>
                 </div>
                 <div className="space-y-2">
@@ -293,23 +249,21 @@ export default function StudentDashboard() {
                     const capacity = s.seating_capacity
                     const isFull = capacity != null && checkedIn >= capacity
                     return (
-                    <div key={s.id} className="flex items-center justify-between p-3 bg-white rounded-xl border border-emerald-200 shadow-sm">
-                      <div>
-                        <span className="font-bold text-slate-800">{s.course_code || s.course?.code || '—'}</span>
-                        <span className="text-sm text-slate-500 ml-2">{s.course_title || s.course?.title || ''}</span>
-                        <div className="text-xs text-slate-400 mt-0.5">
-                          {s.starts_at ? `Started ${new Date(s.starts_at).toLocaleTimeString()}` : ''}
-                          {capacity != null ? ` • ${checkedIn}/${capacity} checked in` : ` • ${checkedIn} checked in`}
-                          {isFull ? ' • FULL' : ''}
+                    <div key={s.id} className="flex items-center justify-between p-3 bg-white rounded-xl border border-surface-200/60 shadow-soft">
+                      <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse-soft" />
+                        <div>
+                          <span className="font-bold text-surface-800">{s.course_code || s.course?.code || '—'}</span>
+                          <span className="text-sm text-surface-500 ml-2">{s.course_title || s.course?.title || ''}</span>
+                          <div className="text-xs text-surface-400 mt-0.5">
+                            {s.starts_at ? `Started ${new Date(s.starts_at).toLocaleTimeString()}` : ''}
+                            {capacity != null ? ` • ${checkedIn}/${capacity} checked in` : ` • ${checkedIn} checked in`}
+                          </div>
                         </div>
                       </div>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="default" onClick={() => openCheckIn(s)}
-                          className={`bg-emerald-600 hover:bg-emerald-700 ${isFull ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          disabled={isFull}
-                        >{isFull ? 'Full' : 'Check In'}</Button>
-                        <Button size="sm" variant="ghost" onClick={() => handleCheckOut(s)}>Check Out</Button>
-                      </div>
+                      <Badge variant={isFull ? 'danger' : 'success'}>
+                        {isFull ? 'Full' : 'In Progress'}
+                      </Badge>
                     </div>
                     )
                   })}
@@ -318,240 +272,223 @@ export default function StudentDashboard() {
             </Card>
           )}
 
-          {monitoringSession ? (
-            <Card className="mb-6 border-l-4 border-l-blue-500 bg-blue-50/50">
-              <div className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-lg font-bold text-blue-800">
-                      <span className="inline-block w-3 h-3 rounded-full bg-blue-500 animate-pulse mr-2" />
-                      Monitoring Session
-                    </h2>
-                    <p className="text-sm text-blue-600 font-medium mt-1">
-                      {monitoringSession.course_code || monitoringSession.course?.code || '—'} — {monitoringSession.course_title || monitoringSession.course?.title || ''}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-3xl font-bold text-blue-700 font-mono">{monitorTimer || '—'}</div>
-                    <div className="text-xs text-blue-500">{monitorTimer === 'Ended' ? 'Session ended' : 'remaining'}</div>
-                  </div>
-                </div>
-                <div className="flex gap-2 mt-3">
-                  <Badge variant="success">Checked In ✓</Badge>
-                  <Button size="sm" variant="ghost" onClick={() => handleCheckOut(monitoringSession)}>Check Out</Button>
-                </div>
-              </div>
-            </Card>
-          ) : null}
-
-          {insights.length > 0 ? (
-            <Card className="mb-6 border-l-4 border-l-purple-400">
-              <div className="p-4">
-                <h2 className="text-lg font-semibold text-slate-800 mb-3">Insights</h2>
-                <div className="space-y-2">
-                  {insights.map((item, i) => (
-                    <div key={i} className={`p-2.5 rounded-lg text-sm ${
-                      item.type === 'danger' ? 'bg-red-50 text-red-700' :
-                      item.type === 'warning' ? 'bg-amber-50 text-amber-700' :
-                      'bg-emerald-50 text-emerald-700'
-                    }`}>{item.text}</div>
-                  ))}
-                </div>
-              </div>
-            </Card>
-          ) : null}
-
-          <div className="grid gap-4 md:grid-cols-5 mb-6">
+          {/* Stats */}
+          <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-4 mb-6">
             <StatCard
-              label="Total Attendance"
-              value={`${totalAttended}/${totalSessions}`}
-              sub="sessions attended"
-              color="#3b82f6"
+              label="Attendance Rate"
+              value={`${avgPct}%`}
+              color="#2f6df6"
+              icon="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
             />
             <StatCard
-              label="Average"
-              value={`${avgPct}%`}
-              sub="overall"
-              color="#8b5cf6"
+              label="Sessions Attended"
+              value={`${totalAttended}/${totalSessions}`}
+              sub="of total sessions"
+              color="#10b981"
+              icon="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
             />
             <StatCard
               label="Present"
               value={summary.present_count ?? summary.present ?? 0}
-              sub="on time"
-              color="#10b981"
+              sub="on time arrivals"
+              color="#06b6d4"
+              icon="M5 13l4 4L19 7"
             />
             <StatCard
-              label="Late"
+              label="Late Arrivals"
               value={summary.late_count ?? summary.late ?? 0}
-              sub="arrivals"
+              sub="tardy sessions"
               color="#f59e0b"
-            />
-            <StatCard
-              label="Absent"
-              value={summary.absent_count ?? summary.absent ?? 0}
-              sub="missed"
-              color="#ef4444"
+              icon="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </div>
 
+          {/* Insights */}
+          {insights.length > 0 && (
+            <Card className="mb-6">
+              <div className="p-5">
+                <div className="section-header">
+                  <div className="section-header-icon">
+                    <svg className="w-5 h-5 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-lg font-bold text-surface-800">Insights</h2>
+                </div>
+                <div className="mt-3 space-y-2">
+                  {insights.map((item, i) => (
+                    <div key={i} className={`flex items-start gap-3 p-3 rounded-xl text-sm ${
+                      item.type === 'danger' ? 'bg-red-50 text-red-700 border border-red-100' :
+                      item.type === 'warning' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
+                      'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                    }`}>
+                      <svg className="w-4 h-4 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
+                      </svg>
+                      {item.text}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Course Breakdown */}
           {courses.length > 0 ? (
             <Card className="mb-6">
-              <h2 className="text-lg font-semibold text-slate-800 mb-4">Course Breakdown</h2>
-              <Table>
-                <Thead>
-                  <Tr>
-                    <Th>Course Code</Th>
-                    <Th>Title</Th>
-                    <Th>Present</Th>
-                    <Th>Late</Th>
-                    <Th>Absent</Th>
-                    <Th>Total Sessions</Th>
-                    <Th>Average %</Th>
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  {courses.map((course, i) => (
-                    <Tr key={course.course_id || course.code || i}>
-                      <Td className="font-mono text-sm font-medium">{course.code || course.course_code || '—'}</Td>
-                      <Td className="text-sm">{course.title || course.course_name || '—'}</Td>
-                      <Td className="text-sm text-green-600 font-medium">{course.present ?? course.present_count ?? 0}</Td>
-                      <Td className="text-sm text-yellow-600 font-medium">{course.late ?? course.late_count ?? 0}</Td>
-                      <Td className="text-sm text-red-600 font-medium">{course.absent ?? course.absent_count ?? 0}</Td>
-                      <Td className="text-sm">{course.total_sessions ?? course.total ?? 0}</Td>
-                      <Td className="text-sm font-medium">
-                        {course.average_percentage != null ? `${course.average_percentage}%` : course.avg != null ? `${course.avg}%` : '—'}
-                      </Td>
-                    </Tr>
-                  ))}
-                </Tbody>
-              </Table>
+              <div className="p-5">
+                <div className="section-header">
+                  <div className="section-header-icon">
+                    <svg className="w-5 h-5 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                  </div>
+                  <h2 className="text-lg font-bold text-surface-800">Course Breakdown</h2>
+                </div>
+                <div className="mt-4 table-row-hover">
+                  <Table>
+                    <Thead>
+                      <Tr>
+                        <Th>Course</Th>
+                        <Th>Title</Th>
+                        <Th className="text-center">Present</Th>
+                        <Th className="text-center">Late</Th>
+                        <Th className="text-center">Absent</Th>
+                        <Th className="text-center">Sessions</Th>
+                        <Th className="text-center">Rate</Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
+                      {courses.map((course, i) => {
+                        const pct = course.average_percentage ?? course.avg ?? 0
+                        return (
+                        <Tr key={course.course_id || course.code || i}>
+                          <Td className="font-mono text-sm font-bold text-primary-600">{course.code || course.course_code || '—'}</Td>
+                          <Td className="text-sm font-medium">{course.title || course.course_name || '—'}</Td>
+                          <Td className="text-center">
+                            <span className="text-sm font-semibold text-emerald-600">{course.present ?? course.present_count ?? 0}</span>
+                          </Td>
+                          <Td className="text-center">
+                            <span className="text-sm font-semibold text-amber-600">{course.late ?? course.late_count ?? 0}</span>
+                          </Td>
+                          <Td className="text-center">
+                            <span className="text-sm font-semibold text-red-600">{course.absent ?? course.absent_count ?? 0}</span>
+                          </Td>
+                          <Td className="text-center text-sm">{course.total_sessions ?? course.total ?? 0}</Td>
+                          <Td className="text-center">
+                            <Badge variant={pct >= 75 ? 'success' : pct >= 50 ? 'warning' : 'danger'}>
+                              {pct}%
+                            </Badge>
+                          </Td>
+                        </Tr>
+                        )
+                      })}
+                    </Tbody>
+                  </Table>
+                </div>
+              </div>
             </Card>
           ) : null}
 
-          <div className="grid gap-6 mb-6 lg:grid-cols-2">
+          {/* Recent Activity & Timetable */}
+          <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
             <Card>
-              <h2 className="text-lg font-semibold text-slate-800 mb-4">Recent Activity</h2>
-              {history.length === 0 ? (
-                <p className="py-8 text-center text-slate-400 text-sm">No recent activity.</p>
-              ) : (
-                <div className="space-y-3">
-                  {history.slice(0, 5).map((record) => (
-                    <div key={record.id} className="flex items-center justify-between py-2 border-b last:border-0">
-                      <div>
-                        <div className="text-sm font-medium text-slate-800">
-                          {record.course?.code || record.course_code || 'Unknown'}
-                        </div>
-                        <div className="text-xs text-slate-400">
-                          {record.checked_in_at ? new Date(record.checked_in_at).toLocaleString() : '—'}
-                        </div>
-                      </div>
-                      <Badge
-                        variant={
-                          record.status === 'present' ? 'success' :
-                          record.status === 'late' ? 'warning' :
-                          record.status === 'absent' ? 'danger' : 'default'
-                        }
-                      >
-                        {record.status || '—'}
-                      </Badge>
-                    </div>
-                  ))}
+              <div className="p-5">
+                <div className="section-header">
+                  <div className="section-header-icon">
+                    <svg className="w-5 h-5 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-lg font-bold text-surface-800">Recent Activity</h2>
                 </div>
-              )}
+                {history.length === 0 ? (
+                  <div className="empty-state py-8">
+                    <svg className="w-12 h-12 text-surface-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-surface-400 text-sm">No recent activity.</p>
+                  </div>
+                ) : (
+                  <div className="mt-3 space-y-2">
+                    {history.slice(0, 5).map((record) => (
+                      <div key={record.id} className="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-surface-50 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${
+                            record.status === 'present' ? 'bg-emerald-100 text-emerald-700' :
+                            record.status === 'late' ? 'bg-amber-100 text-amber-700' :
+                            'bg-red-100 text-red-700'
+                          }`}>
+                            {record.status === 'present' ? 'P' : record.status === 'late' ? 'L' : 'A'}
+                          </div>
+                          <div>
+                            <div className="text-sm font-semibold text-surface-800">
+                              {record.course?.code || record.course_code || 'Unknown'}
+                            </div>
+                            <div className="text-xs text-surface-400">
+                              {record.checked_in_at ? new Date(record.checked_in_at).toLocaleDateString() : '—'}
+                            </div>
+                          </div>
+                        </div>
+                        <Badge variant={
+                          record.status === 'present' ? 'success' :
+                          record.status === 'late' ? 'warning' : 'danger'
+                        }>
+                          {record.status || '—'}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </Card>
 
             <Card>
-              <h2 className="text-lg font-semibold text-slate-800 mb-4">Timetable</h2>
-              {timetable.length === 0 ? (
-                <p className="py-8 text-center text-slate-400 text-sm">No timetable available.</p>
-              ) : (
-                <div className="space-y-3 max-h-64 overflow-auto">
-                  {timetable.map((slot, i) => (
-                    <div key={slot.id || i} className="flex items-center justify-between py-2 border-b last:border-0">
-                      <div>
-                        <div className="text-sm font-medium text-slate-800">
-                          {slot.course?.code || slot.course_code || slot.course || 'Unknown'}
-                        </div>
-                        <div className="text-xs text-slate-400">
-                          {(slot.day != null ? slot.day : (slot.day_of_week != null ? ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][slot.day_of_week] || slot.day_of_week : '—'))} {slot.start_time || slot.time ? `at ${slot.start_time || slot.time}` : ''}
-                        </div>
-                      </div>
-                      {slot.venue ? (
-                        <span className="text-xs text-slate-500 font-mono">{slot.venue}</span>
-                      ) : null}
-                    </div>
-                  ))}
+              <div className="p-5">
+                <div className="section-header">
+                  <div className="section-header-icon bg-secondary-500/10">
+                    <svg className="w-5 h-5 text-secondary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-lg font-bold text-surface-800">Timetable</h2>
                 </div>
-              )}
+                {timetable.length === 0 ? (
+                  <div className="empty-state py-8">
+                    <svg className="w-12 h-12 text-surface-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <p className="text-surface-400 text-sm">No timetable available.</p>
+                  </div>
+                ) : (
+                  <div className="mt-3 space-y-2 max-h-72 overflow-auto">
+                    {timetable.map((slot, i) => (
+                      <div key={slot.id || i} className="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-surface-50 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-secondary-50 flex items-center justify-center text-xs font-bold text-secondary-700">
+                            {(slot.day || '').charAt(0) || (slot.day_of_week != null ? ['S','M','T','W','T','F','S'][slot.day_of_week] : '—')}
+                          </div>
+                          <div>
+                            <div className="text-sm font-semibold text-surface-800">
+                              {slot.course?.code || slot.course_code || slot.course || 'Unknown'}
+                            </div>
+                            <div className="text-xs text-surface-400">
+                              {(slot.day != null ? slot.day : (slot.day_of_week != null ? ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][slot.day_of_week] || slot.day_of_week : '—'))} {slot.start_time || slot.time ? `at ${slot.start_time || slot.time}` : ''}
+                            </div>
+                          </div>
+                        </div>
+                        {slot.venue ? (
+                          <span className="text-xs text-surface-500 font-mono bg-surface-100 px-2 py-1 rounded-lg">{slot.venue}</span>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </Card>
           </div>
         </>
       )}
-
-      <Modal open={showCheckIn} onClose={() => { setShowCheckIn(false); stopCamera() }} title={checkInSession ? `Check In — ${checkInSession.course_code || checkInSession.course?.code || 'Session'}` : 'Check In'}>
-        <div className="space-y-4">
-          {checkInError ? <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">{checkInError}</div> : null}
-          {checkInSuccess ? <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-600">{checkInSuccess}</div> : null}
-
-          {facePreview ? (
-            <div className="space-y-3">
-              <p className="text-sm font-medium text-slate-600">Face captured ✓</p>
-              <div className="relative rounded-xl overflow-hidden border-2 border-emerald-300">
-                <img src={facePreview} alt="Captured face" className="w-full h-48 object-cover" />
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => { setFaceImage(null); setFacePreview(null); startCamera() }}>Retake</Button>
-              </div>
-            </div>
-          ) : showCamera ? (
-            <div className="relative rounded-xl overflow-hidden border-2 border-blue-300 bg-black">
-              <video ref={videoRef} autoPlay playsInline muted onCanPlay={() => setVideoReady(true)} className="w-full h-48 object-cover" />
-              <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-3">
-                <button onClick={captureFrame} disabled={!videoReady}
-                  className="px-6 py-2 rounded-lg text-sm font-bold bg-white text-slate-800 hover:bg-slate-100 disabled:opacity-50 shadow-lg"
-                >{videoReady ? '📸 Capture' : 'Loading camera...'}</button>
-                <button onClick={stopCamera}
-                  className="px-4 py-2 rounded-lg text-sm bg-slate-800/60 text-white hover:bg-slate-800"
-                >Cancel</button>
-              </div>
-            </div>
-          ) : (
-            <button onClick={startCamera}
-              className="w-full flex flex-col items-center gap-2 border-2 border-dashed border-slate-300 rounded-xl py-8 text-slate-500 hover:border-blue-400 hover:text-blue-600 transition-all"
-            >
-              <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
-              </svg>
-              <span className="text-base font-bold">Capture Face for Check-In</span>
-              <span className="text-xs text-slate-400">Camera is required for biometric verification</span>
-            </button>
-          )}
-
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-slate-500">📍 Location:</span>
-            {location ? (
-              <span className="text-emerald-600 font-medium">Acquired ✓</span>
-            ) : locationError ? (
-              <span className="text-amber-600 text-xs">{locationError}</span>
-            ) : (
-              <span className="text-slate-400">Acquiring...</span>
-            )}
-            {!location ? (
-              <Button variant="ghost" size="sm" onClick={getLocation} className="text-xs">Retry</Button>
-            ) : null}
-          </div>
-
-          <div className="flex gap-2 pt-2">
-            <Button onClick={handleCheckIn} disabled={checkInBusy || !faceImage || !location} className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50">
-              {checkInBusy ? 'Checking in...' : !location ? '📍 Acquire location first' : '✅ Confirm Check-In'}
-            </Button>
-            <Button variant="ghost" onClick={() => { setShowCheckIn(false); stopCamera() }}>Cancel</Button>
-          </div>
-        </div>
-      </Modal>
-
-      <canvas ref={canvasRef} className="hidden" />
     </Layout>
   )
 }

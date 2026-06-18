@@ -2,7 +2,6 @@ import { useState } from 'react'
 import Link from 'next/link'
 import Card from '../components/shadcn/Card'
 import Button from '../components/shadcn/Button'
-import Input from '../components/shadcn/Input'
 import { login } from '../services/api'
 
 export default function Login() {
@@ -45,55 +44,55 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-gradient-to-br from-primary-50 via-white to-secondary-50">
+      {/* Decorative background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-primary-500/5 blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-secondary-500/5 blur-3xl" />
+        <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-primary-500/[0.04] blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-secondary-500/[0.04] blur-3xl" />
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full bg-primary-500/[0.03] blur-3xl animate-float" />
+        <div className="absolute bottom-1/3 right-1/4 w-48 h-48 rounded-full bg-secondary-500/[0.03] blur-3xl animate-float" style={{ animationDelay: '1.5s' }} />
+        {/* Dot pattern */}
+        <div className="absolute inset-0 bg-dots opacity-40" />
       </div>
 
-      <Card glass className="w-full max-w-md p-8 animate-slide-up relative z-10">
+      <Card glass className="w-full max-w-md p-6 sm:p-8 md:p-10 animate-slide-up relative z-10">
+        {/* Logo & Header */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center mx-auto mb-4 shadow-glow-lg">
             <span className="text-white font-extrabold text-xl">SN</span>
           </div>
-          <h1 className="text-heading2 text-surface-800">Welcome Back</h1>
-          <p className="text-surface-500 mt-1.5 text-sm font-medium">Sign in to your account</p>
+          <h1 className="text-2xl font-bold text-surface-800">Welcome Back</h1>
+          <p className="text-surface-500 mt-1.5 text-sm font-medium">Sign in to your ScholarsNudge account</p>
         </div>
 
-        {error ? (
+        {/* Error */}
+        {error && (
           <div className="alert-box bg-red-50 border-red-200 text-red-700 mb-5">
             <svg className="w-5 h-5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             <span>{error}</span>
           </div>
-        ) : null}
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Login Mode Toggle */}
           <div className="flex bg-surface-100 rounded-xl p-1 mb-2">
-            <button
-              type="button"
-              onClick={() => { setLoginMode('email'); setCredential(''); setError('') }}
-              className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${loginMode === 'email' ? 'bg-white text-surface-800 shadow-sm' : 'text-surface-500 hover:text-surface-700'}`}
-            >
-              <svg className="w-4 h-4 inline mr-1.5 -mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" /></svg>
-              Email
-            </button>
-            <button
-              type="button"
-              onClick={() => { setLoginMode('matric'); setCredential(''); setError('') }}
-              className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${loginMode === 'matric' ? 'bg-white text-surface-800 shadow-sm' : 'text-surface-500 hover:text-surface-700'}`}
-            >
-              <svg className="w-4 h-4 inline mr-1.5 -mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0" /></svg>
-              Matric
-            </button>
-            <button
-              type="button"
-              onClick={() => { setLoginMode('staff_id'); setCredential(''); setError('') }}
-              className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${loginMode === 'staff_id' ? 'bg-white text-surface-800 shadow-sm' : 'text-surface-500 hover:text-surface-700'}`}
-            >
-              <svg className="w-4 h-4 inline mr-1.5 -mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-              Staff ID
-            </button>
+            {[
+              { key: 'email', label: 'Email', icon: 'M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207' },
+              { key: 'matric', label: 'Matric', icon: 'M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0' },
+              { key: 'staff_id', label: 'Staff ID', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
+            ].map((mode) => (
+              <button
+                key={mode.key}
+                type="button"
+                onClick={() => { setLoginMode(mode.key); setCredential(''); setError('') }}
+                className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${loginMode === mode.key ? 'bg-white text-surface-800 shadow-sm' : 'text-surface-500 hover:text-surface-700'}`}
+              >
+                <svg className="w-4 h-4 inline mr-1.5 -mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={mode.icon} /></svg>
+                {mode.label}
+              </button>
+            ))}
           </div>
 
+          {/* Credential Input */}
           <div>
             <label className="block text-sm font-bold text-surface-700 mb-1.5">{loginModeLabel}</label>
             <div className="relative">
@@ -112,6 +111,8 @@ export default function Login() {
               />
             </div>
           </div>
+
+          {/* Password Input */}
           <div>
             <label className="block text-sm font-bold text-surface-700 mb-1.5">Password</label>
             <div className="relative">
@@ -142,6 +143,8 @@ export default function Login() {
               </button>
             </div>
           </div>
+
+          {/* Submit */}
           <Button type="submit" className="w-full h-[52px] text-base" disabled={busy}>
             {busy ? (
               <span className="flex items-center gap-2"><svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Signing in...</span>
@@ -149,13 +152,14 @@ export default function Login() {
           </Button>
         </form>
 
+        {/* Links */}
         <div className="mt-6 flex flex-col items-center gap-3">
           <a href="/forgot-password" className="text-sm font-bold text-primary-600 hover:text-primary-700 transition-colors">Forgot Password?</a>
           <p className="text-sm text-surface-500 font-medium">
             Don't have an account?{' '}
             <Link href="/register" className="text-primary-600 hover:text-primary-700 font-bold">Create one</Link>
           </p>
-          <div className="flex items-center justify-center gap-2 text-xs text-surface-400">
+          <div className="flex items-center justify-center gap-2 text-xs text-surface-400 mt-1">
             <span className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-primary-500/5 border border-primary-200/30 font-medium">
               <svg className="w-3 h-3 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
               Secure

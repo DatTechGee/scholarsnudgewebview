@@ -121,18 +121,18 @@ export default function StudentProfile() {
                 {faceRegistered ? 'Registered' : 'Not Registered'}
               </Badge>
               <span className="text-sm text-slate-500">
-                {faceRegistered
+            {faceRegistered
                   ? 'Your face is registered for biometric attendance.'
-                  : 'Register your face to use biometric check-in.'}
-              </span>
+                  : 'Face registration is available on the mobile app.'}
+            </span>
+          </div>
+          {!faceRegistered ? (
+            <div className="mt-4">
+              <Button variant="outline" disabled>
+                Use Mobile App to Register Face
+              </Button>
             </div>
-            {!faceRegistered ? (
-              <div className="mt-4">
-                <Button variant="default" onClick={() => router.push('/student/face-register')}>
-                  Register Face
-                </Button>
-              </div>
-            ) : null}
+          ) : null}
           </Card>
 
           <Card className="p-5">
